@@ -1,0 +1,943 @@
+================================================================================
+ BULLET ROUTE PUZZLE - SETUP GUIDE CHI TIET
+ Version: 1.0
+ Unity: 2021.3+ (LTS recommended)
+ Required Packages: DOTween (Free or Pro), TextMeshPro
+================================================================================
+
+MUC LUC
+-------
+  1. TONG QUAN KIEN TRUC
+  2. CAI DAT BAN DAU
+  3. TAO SCENE CHINH
+  4. TAO PREFABS (TUNG BUOC)
+  5. TAO SCRIPTABLEOBJECTS
+  6. GAN REFERENCES TRONG INSPECTOR
+  7. SETUP FX SYSTEM
+  8. SETUP AUDIO SYSTEM
+  9. SETUP UI
+  10. TAO LEVEL DATA
+  11. KIEM TRA VA DEBUG
+  12. THEM FX VAO GAME
+  13. CHECKLIST TONG HOP
+
+
+================================================================================
+1. TONG QUAN KIEN TRUC
+================================================================================
+
+Game su dung cac Design Pattern:
+  - Service Locator: Cac Manager tu dang ky trong Awake(), truy cap qua
+    ServiceLocator.Get<T>()
+  - Event Bus: Giao tiep giua cac he thong bang EventBus.Publish/Subscribe
+  - Command Pattern: Undo/Redo cho Rotate va Swap tile
+  - Factory Pattern: TileFactory tao tile tu prefab map
+  - Object Pool: Pool cho Bullet va FX (tranh GC)
+  - State Machine: GameStateManager quan ly trang thai game
+
+Thu tu khoi tao (Script Execution Order):
+  Awake: ServiceLocator.Register -> cac Manager dang ky
+  Start: ServiceLocator.Get -> cac Manager lay reference
+  => KHONG can chinh Script Execution Order trong Unity
+
+Thu tu Awake registration (tu dong):
+  GameManager -> GameConfig -> GridManager -> TileFactory ->
+  BulletManager -> BulletSimulator -> LevelManager ->
+  GameStateManager -> FXManager -> AudioManager -> CameraController -> UIManager
+
+
+================================================================================
+2. CAI DAT BAN DAU
+================================================================================
+
+BUOC 2.1: Import DOTween
+  - Window > Package Manager > Import DOTween (free tu Asset Store)
+  - Hoac dung DOTween Pro neu co
+  - Sau khi import: Tools > Demigiant > DOTween Utility Panel > "Setup DOTween"
+  - Tick: Modules > TextMeshPro, Physics, UI (neu dung Pro)
+
+BUOC 2.2: Import TextMeshPro
+  - Window > TextMeshPro > Import TMP Essential Resources
+
+BUOC 2.3: Kiem tra folder structure
+  Assets/_Game/
+    Art/
+      Materials/       <- Materials cho tiles, bullet, grid
+      Models/          <- 3D models (low-poly tiles, bullet, turret, target)
+      Textures/        <- Textures, icons
+    Prefabs/
+      Tiles/           <- Prefab cho moi loai tile
+      Bullet/          <- Bullet prefab
+      Turret/          <- Turret prefab
+      Target/          <- Target prefab
+      FX/              <- ParticleSystem prefabs
+      UI/              <- UI panel prefabs
+    Scenes/            <- Scene chinh
+    ScriptableObjects/
+      Configs/         <- GameConfig asset
+      Levels/          <- LevelData assets (Level_01, Level_02, ...)
+    Scripts/           <- DA CO SAN - KHONG CAN THAY DOI
+
+
+================================================================================
+3. TAO SCENE CHINH
+================================================================================
+
+BUOC 3.1: Tao scene moi
+  - File > New Scene > Basic (Built-in)
+  - Save: Assets/_Game/Scenes/GameScene.unity
+
+BUOC 3.2: Setup Camera
+  - Main Camera:
+    Position: (0, 10, -5)
+    Rotation: (60, 0, 0)
+    Clear Flags: Solid Color
+    Background: chon mau nen game (VD: dark blue #1A1A2E)
+    Them component: CameraController.cs
+
+  Inspector CameraController:
+    Default Height: 10
+    Default Angle: 60
+    Padding: 2
+    Focus Duration: 0.5
+    Focus Ease: InOutQuad
+    Zoom Duration: 0.3
+    Default Shake Intensity: 0.3
+    Default Shake Duration: 0.2
+
+BUOC 3.3: Tao Ground Plane (Optional - cho visual)
+  - GameObject > 3D Object > Plane
+  - Scale: (10, 1, 10)
+  - Them material toi mau
+  - Layer: Default
+  - Dat ten: "Ground"
+
+BUOC 3.4: Tao Grid Collider
+  QUAN TRONG: InputManager dung Physics.Raycast de detect click tren grid
+  - Tao Empty GameObject: "[GridCollider]"
+  - Them BoxCollider:
+    Center: (0, 0, 0)
+    Size: (20, 0.1, 20)  <- du lon de cover grid lon nhat (10x10)
+  - Tao Layer moi: "Grid"
+  - Gan layer "Grid" cho [GridCollider]
+  - NAM TREN MAT PHANG Y=0
+
+
+================================================================================
+4. TAO PREFABS (TUNG BUOC)
+================================================================================
+
+---------- 4.1: TILE PREFABS ----------
+
+Moi tile prefab co cau truc:
+
+  Tile_[Type]            <- Empty GO, them script tuong ung
+    VisualRoot           <- Chua 3D model/mesh, la target cho animation
+      Model              <- 3D mesh hien thi tile
+      ArrowIndicator     <- (Optional) mesh/sprite chi huong tile
+    FX_Center            <- (Optional) Transform tai trung tam
+    FX_Top               <- (Optional) Transform phia tren (localPos: 0, 0, 0.5)
+    FX_Bottom            <- (Optional) Transform phia duoi (localPos: 0, 0, -0.5)
+    FX_Left              <- (Optional) Transform ben trai (localPos: -0.5, 0, 0)
+    FX_Right             <- (Optional) Transform ben phai (localPos: 0.5, 0, 0)
+
+  LUU Y FX POINTS:
+    - Neu khong tao san, code tu tao trong TileBase.Start()
+    - Top/Bottom dung Z axis (Vector3.forward/back) vi game la 3D top-down
+    - Left/Right dung X axis (Vector3.left/right)
+
+--- 4.1.1: Straight Tile ---
+  Tao Empty GO "Tile_Straight"
+  Them script: StraightTile.cs
+  Tao child "VisualRoot" -> dat 3D model (pipe thang)
+  Inspector StraightTile:
+    Tile Type: Straight
+    Is Locked: false
+    Is Fixed: false
+    Visual Root: keo VisualRoot vao
+    Arrow Indicator: (optional) keo arrow vao
+    Rotate Duration: 0.25
+    Rotate Ease: OutBack
+    Swap Move Duration: 0.3
+    Swap Ease: OutQuad
+    Select Scale Multiplier: 1.15
+    Idle Pulse Duration: 2
+    Idle Pulse Scale: 0.02
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Straight.prefab
+
+--- 4.1.2: Corner Tile ---
+  Tuong tu Straight nhung model hinh goc 90 do (L-shape pipe)
+  Script: CornerTile.cs
+  Tile Type: Corner
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Corner.prefab
+
+--- 4.1.3: Cross Tile ---
+  Model hinh dau + (cross intersection)
+  Script: CrossTile.cs
+  Tile Type: Cross
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Cross.prefab
+
+--- 4.1.4: Block Tile ---
+  Model hinh khoi solid (wall/cube)
+  Script: BlockTile.cs
+  Tile Type: Block
+  Inspector them:
+    Shake Intensity: 0.3
+    Shake Duration: 0.4
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Block.prefab
+
+--- 4.1.5: Mirror Tile ---
+  Model hinh guong/phan xa (diagonal surface)
+  Script: MirrorTile.cs
+  Tile Type: Mirror
+  Inspector them:
+    Is Forward Slash: true (cho prefab /, tao variant voi false cho \)
+    Flash Duration: 0.2
+  CACH DUNG: Trong LevelData, dung ExtraData = 0 cho /, ExtraData = 1 cho \
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Mirror.prefab
+
+--- 4.1.6: Splitter Tile ---
+  Model hinh chia nhanh (T-shape hoac arrow split)
+  Script: SplitterTile.cs
+  Tile Type: Splitter
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Splitter.prefab
+
+--- 4.1.7: Portal Tile ---
+  Model hinh vong xoay/portal ring
+  Script: PortalTile.cs
+  Tile Type: Portal
+  Inspector them:
+    Portal Id: 0 (se duoc set tu LevelData.ExtraData luc runtime)
+    Portal Color: Cyan (visual only, doi mau cho dep)
+    Portal Spin Speed: 90
+    Teleport Duration: 0.3
+  CACH DUNG: Trong LevelData, 2 tile Portal co cung ExtraData = same ID
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Portal.prefab
+
+--- 4.1.8: Bomb Tile ---
+  Model hinh bom/explosive
+  Script: BombTile.cs (implements IDestructible)
+  Tile Type: Bomb
+  Inspector them:
+    Explosion Delay: 0.2
+    Explosion Scale: 2
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Bomb.prefab
+
+--- 4.1.9: Absorb Tile ---
+  Model hinh lo den/void
+  Script: AbsorbTile.cs
+  Tile Type: Absorb
+  Inspector them:
+    Absorb Duration: 0.4
+  Save: Assets/_Game/Prefabs/Tiles/Tile_Absorb.prefab
+
+
+---------- 4.2: TURRET PREFAB ----------
+
+Cau truc:
+  Tile_Turret
+    VisualRoot
+      Body               <- 3D model than turret
+      Barrel             <- 3D model nong sung (se recoil khi ban)
+        MuzzlePoint      <- Empty GO o dau nong (noi dan spawn)
+    FX_MuzzleFlash       <- (Optional) Transform cho muzzle flash FX
+
+  Script: TurretController.cs (ke thua TileBase)
+  Inspector:
+    Tile Type: Turret
+    Is Fixed: true (tu set trong code, nhung de true cho chac)
+    Visual Root: keo VisualRoot
+    Fire Direction: Right (se duoc override boi LevelData)
+    Barrel: keo Barrel transform
+    Muzzle Point: keo MuzzlePoint transform
+    FX Muzzle Flash: keo FX_MuzzleFlash transform
+    Recoil Distance: 0.15
+    Recoil Duration: 0.15
+    Charge Up Duration: 0.3
+    Charge Scale: 1.2
+
+  Save: Assets/_Game/Prefabs/Turret/Tile_Turret.prefab
+
+
+---------- 4.3: TARGET PREFAB ----------
+
+Cau truc:
+  Tile_Target
+    VisualRoot
+      TargetCenter       <- 3D model tam target (bull's eye)
+      TargetRing         <- 3D model vong ring xoay quanh
+
+  Script: TargetController.cs (ke thua TileBase)
+  Inspector:
+    Tile Type: Target
+    Is Fixed: true
+    Visual Root: keo VisualRoot
+    Target Ring: keo TargetRing
+    Target Center: keo TargetCenter
+    Ring Rotate Speed: 45
+    Hit Explosion Scale: 2
+    Hit Duration: 0.5
+    Pulse Frequency: 1.5
+
+  Save: Assets/_Game/Prefabs/Target/Tile_Target.prefab
+
+
+---------- 4.4: BULLET PREFAB ----------
+
+Cau truc:
+  Bullet
+    VisualRoot           <- Chua visual
+      BulletModel        <- 3D model vien dan (sphere/capsule nho)
+    TrailRenderer        <- Component trail (optional)
+    FX_Front             <- Transform o dau vien dan
+    FX_Center            <- Transform o giua
+    FX_Trail             <- Transform o duoi (cho trail FX)
+
+  Script: BulletController.cs
+  Inspector:
+    Visual Root: keo VisualRoot
+    Trail: keo TrailRenderer component (hoac null)
+    FX Front: keo FX_Front
+    FX Center: keo FX_Center
+    FX Trail: keo FX_Trail
+    Move Speed: 0.5 (seconds per tile - theo GDD)
+    Move Ease: InOutQuad
+    Spawn Scale Time: 0.2
+    Despawn Scale Time: 0.15
+    Pulse Scale: 0.1
+    Pulse Duration: 0.3
+    Rotation Smooth: 0.3
+
+  TrailRenderer settings (neu dung):
+    Time: 0.3
+    Width: 0.1 -> 0
+    Material: Unlit trail material (additive blend)
+    Color: neon color
+
+  Save: Assets/_Game/Prefabs/Bullet/Bullet.prefab
+
+
+================================================================================
+5. TAO SCRIPTABLEOBJECTS
+================================================================================
+
+---------- 5.1: GameConfig ----------
+  Right-click ScriptableObjects/Configs/ > Create > BulletRoute > Game Config
+  Dat ten: GameConfig
+
+  Inspector:
+    Grid:
+      Cell Size: 1.2
+      Cell Spacing: 0.1
+    Bullet:
+      Bullet Speed Per Tile: 0.5
+      Bullet Spawn Delay: 0.3
+      Max Bullet Steps: 100
+    Animation Timing:
+      Tile Rotate Duration: 0.25
+      Tile Swap Duration: 0.3
+      Grid Appear Delay: 0.03
+      Level Transition Duration: 0.5
+    Animation Easing:
+      Tile Rotate Ease: OutBack
+      Tile Swap Ease: OutQuad
+      Grid Appear Ease: OutBack
+    Gameplay:
+      Auto Reset Delay: 1.5
+      Win Panel Delay: 0.5
+    Camera:
+      Camera Height: 10
+      Camera Angle: 60
+      Camera Padding: 2
+
+
+---------- 5.2: LevelData (cho moi level) ----------
+  Right-click ScriptableObjects/Levels/ > Create > BulletRoute > Level Data
+  Dat ten: Level_01, Level_02, ...
+
+  VD Level_01 (Tutorial):
+    Level Index: 0
+    Level Name: "Tutorial"
+    World Index: 0
+    Grid Width: 5
+    Grid Height: 5
+    Three Star: 3   (3 moves tro xuong = 3 sao)
+    Two Star: 5     (5 moves tro xuong = 2 sao)
+    One Star: 8     (8 moves tro xuong = 1 sao)
+
+    Turrets: (1 entry)
+      [0] Position: (0, 4)   <- goc tren trai
+           Fire Direction: Right
+
+    Targets: (1 entry)
+      [0] Position: (4, 0)   <- goc duoi phai
+
+    Tiles: (VD setup)
+      [0] Position: (1, 4), Type: Straight, Rotation: 1, IsLocked: false, ExtraData: 0
+      [1] Position: (2, 4), Type: Corner,   Rotation: 0, IsLocked: false, ExtraData: 0
+      [2] Position: (2, 3), Type: Straight, Rotation: 0, IsLocked: false, ExtraData: 0
+      [3] Position: (2, 2), Type: Corner,   Rotation: 3, IsLocked: false, ExtraData: 0
+      [4] Position: (3, 2), Type: Straight, Rotation: 1, IsLocked: false, ExtraData: 0
+      [5] Position: (4, 2), Type: Corner,   Rotation: 0, IsLocked: false, ExtraData: 0
+      [6] Position: (4, 1), Type: Straight, Rotation: 0, IsLocked: false, ExtraData: 0
+      ... them tiles de lap grid
+
+  HE THONG TOA DO GRID:
+    (0,0) = goc duoi trai
+    X tang sang phai
+    Y tang len tren
+
+  ROTATION VALUES:
+    0 = Default (Up/North)
+    1 = Rotated 90 CW (Right/East)
+    2 = Rotated 180 (Down/South)
+    3 = Rotated 270 CW (Left/West)
+
+  TILE ROUTING LOGIC:
+    Straight (Rot 0): Dan vao tu Up -> ra Down, vao Down -> ra Up
+    Straight (Rot 1): Dan vao tu Left -> ra Right, vao Right -> ra Left
+    Corner (Rot 0): Dan vao tu Up -> ra Right, vao Right -> ra Up
+    Corner (Rot 1): Dan vao tu Right -> ra Down, vao Down -> ra Right
+    Corner (Rot 2): Dan vao tu Down -> ra Left, vao Left -> ra Down
+    Corner (Rot 3): Dan vao tu Left -> ra Up, vao Up -> ra Left
+    Cross: Dan xuyen qua bat ky huong nao (khong can rotate)
+    Block: Chan dan (khong exit)
+    Mirror (/): Up->Right, Right->Up, Down->Left, Left->Down
+    Mirror (\): Up->Left, Left->Up, Down->Right, Right->Down
+    Splitter: Tach dan thanh 2 huong vuong goc voi huong vao
+    Portal: Dan teleport den portal cung PortalId, tiep tuc cung huong
+    Bomb: Dan xuyen qua, pha cac Block ke ben
+    Absorb: Nuot dan -> fail
+
+  EXTRA DATA:
+    Portal: ExtraData = Portal ID (2 portal cung ID = 1 cap)
+    Mirror: ExtraData = 0 (/) hoac 1 (\)
+    Cac tile khac: ExtraData = 0 (khong dung)
+
+  LEVEL PROGRESSION (theo GDD):
+    | Stage              | Grid  | Levels  |
+    | Early              | 5x5   | 1-3     |
+    | Mid                | 6x6   | 4-6     |
+    | Advanced           | 7x7   | 7-9     |
+    | Hard               | 8x8   | 10-12   |
+    | Expert             | 9x9   | 13-15   |
+    | Master             | 10x10 | 16+     |
+
+  DIFFICULTY TARGET COUNT:
+    | Difficulty | Target Count |
+    | Easy       | 1            |
+    | Medium     | 2            |
+    | Hard       | 3            |
+
+
+================================================================================
+6. GAN REFERENCES TRONG INSPECTOR
+================================================================================
+
+Tao cac GameObject trong Scene va gan script:
+
+---------- 6.1: [GameManager] ----------
+  Tao Empty GO: "[GameManager]"
+  Them script: GameManager.cs
+  Inspector:
+    Game Config: keo GameConfig ScriptableObject vao
+    Tween Capacity: 500
+    Sequence Capacity: 100
+
+---------- 6.2: [GridManager] ----------
+  Tao Empty GO: "[GridManager]"
+  Them script: GridManager.cs
+  Inspector:
+    Cell Size: 1.2
+    Cell Spacing: 0.1
+    Grid Parent: (optional) keo 1 empty GO lam parent cho tiles
+    Cell Appear Duration: 0.3
+    Cell Appear Delay: 0.03
+    Cell Appear Ease: OutBack
+
+---------- 6.3: [TileFactory] ----------
+  Tao Empty GO: "[TileFactory]"
+  Them script: TileFactory.cs
+  Inspector - Tile Prefabs list (QUAN TRONG - phai gan DU):
+    [0]  Type: Straight,  Prefab: keo Tile_Straight.prefab
+    [1]  Type: Corner,    Prefab: keo Tile_Corner.prefab
+    [2]  Type: Cross,     Prefab: keo Tile_Cross.prefab
+    [3]  Type: Block,     Prefab: keo Tile_Block.prefab
+    [4]  Type: Mirror,    Prefab: keo Tile_Mirror.prefab
+    [5]  Type: Splitter,  Prefab: keo Tile_Splitter.prefab
+    [6]  Type: Portal,    Prefab: keo Tile_Portal.prefab
+    [7]  Type: Bomb,      Prefab: keo Tile_Bomb.prefab
+    [8]  Type: Absorb,    Prefab: keo Tile_Absorb.prefab
+    [9]  Type: Turret,    Prefab: keo Tile_Turret.prefab
+    [10] Type: Target,    Prefab: keo Tile_Target.prefab
+
+---------- 6.4: [LevelManager] ----------
+  Tao Empty GO: "[LevelManager]"
+  Them script: LevelManager.cs
+  Inspector:
+    Levels: keo TAT CA LevelData assets vao (theo thu tu)
+      [0] Level_01
+      [1] Level_02
+      ...
+    Tile Parent: (optional) keo 1 empty GO hoac de null (tu tao)
+
+---------- 6.5: [BulletSimulator] ----------
+  Tao Empty GO: "[BulletSimulator]"
+  Them script: BulletSimulator.cs
+  Inspector:
+    Step Delay: 0.05
+    Max Steps: 100
+
+---------- 6.6: [BulletManager] ----------
+  Tao Empty GO: "[BulletManager]"
+  Them script: BulletManager.cs
+  Inspector:
+    Bullet Prefab: keo Bullet.prefab
+    Pool Size: 10
+    Bullet Container: (optional) de null, tu tao
+
+---------- 6.7: [GameStateManager] ----------
+  Tao Empty GO: "[GameStateManager]"
+  Them script: GameStateManager.cs
+  (Khong co inspector fields can gan)
+
+---------- 6.8: [InputManager] ----------
+  Tao Empty GO: "[InputManager]"
+  Them script: InputManager.cs
+  Inspector:
+    Drag Threshold: 0.3
+    Grid Layer: chon layer "Grid" (layer cua [GridCollider])
+    Main Camera: keo Main Camera vao (hoac de null, tu tim)
+    Drag Lift Height: 0.5
+    Drag Scale: 1.1
+
+---------- 6.9: [FXManager] ----------
+  Tao Empty GO: "[FXManager]"
+  Them script: FXManager.cs
+  Inspector - FX Library: (xem Section 7)
+
+---------- 6.10: [AudioManager] ----------
+  Tao Empty GO: "[AudioManager]"
+  Them script: AudioManager.cs
+  Inspector: (xem Section 8)
+
+---------- 6.11: [UIManager] ----------
+  Tao Canvas: "[UICanvas]"
+  Tao child Empty GO: "[UIManager]"
+  Them script: UIManager.cs
+  Inspector - Panels: (xem Section 9)
+
+
+================================================================================
+7. SETUP FX SYSTEM
+================================================================================
+
+FX dung ParticleSystem prefabs. Moi FX entry gom:
+  - Name: ten de code goi (PHAI DUNG CHINH XAC)
+  - Prefab: ParticleSystem prefab
+  - Pool Size: so luong pool san
+  - Life Time: thoi gian song (giay)
+
+TAO FX PREFABS:
+  Moi prefab la 1 GameObject co ParticleSystem component.
+  Save vao: Assets/_Game/Prefabs/FX/
+
+DANH SACH FX CAN TAO (code da goi cac ten nay):
+
+  | FX Name        | Mo ta                              | Noi goi         | Pool | Lifetime |
+  |----------------|------------------------------------|-----------------|------|----------|
+  | BulletPass     | Dan di qua tile (spark nho)        | TileBase        | 10   | 1.0      |
+  | BulletHitTarget| Dan trung target (bung no dep)     | BulletController| 5    | 2.0      |
+  | BulletStop     | Dan dung (puff smoke)              | BulletController| 5    | 1.5      |
+  | BulletSplit    | Dan tach (flash + rings)           | SplitterTile    | 3    | 1.5      |
+  | BulletAbsorb   | Dan bi nuot (implode)              | AbsorbTile      | 3    | 1.5      |
+  | MuzzleFlash    | Turret ban (flash sang)            | TurretController| 5    | 0.5      |
+  | TurretCharge   | Turret charge (energy gather)      | TurretController| 3    | 1.0      |
+  | MirrorReflect  | Dan phan xa (flash + sparkle)      | MirrorTile      | 5    | 1.0      |
+  | PortalIn       | Dan vao portal (swirl in)          | PortalTile      | 3    | 1.0      |
+  | PortalOut      | Dan ra portal (swirl out)          | PortalTile      | 3    | 1.0      |
+  | Explosion      | Bom no (fire + debris)             | BombTile        | 3    | 2.0      |
+  | BlockHit       | Block bi dan (impact particles)    | BlockTile       | 5    | 1.0      |
+  | TargetHit      | Target bi trung (celebration)      | TargetController| 3    | 2.0      |
+  | Confetti       | Win celebration (confetti rain)    | WinPanel        | 1    | 3.0      |
+  | StarBurst      | Sao xuat hien (burst sparkle)      | WinPanel        | 3    | 1.5      |
+
+GAN VAO FXMANAGER:
+  [FXManager] Inspector > FX Library:
+  Them 15 entries, moi entry gan Name + Prefab + Pool Size + Lifetime theo bang tren
+
+TIPS TAO FX:
+  - Dung Particle System voi Renderer > Material = Additive/Alpha blend
+  - Start Lifetime: ngan (0.3-1s)
+  - Start Speed: vua phai
+  - Emission Burst: cho impact FX
+  - Shape: Sphere cho burst, Cone cho directional
+  - Color over Lifetime: fade out
+  - Size over Lifetime: shrink
+  - Dung Sub Emitters cho hieu ung phuc tap
+
+
+================================================================================
+8. SETUP AUDIO SYSTEM
+================================================================================
+
+[AudioManager] Inspector:
+
+Music Source: (de null, tu tao AudioSource)
+SFX Source: (de null, tu tao AudioSource)
+Music Fade Duration: 1
+Master Volume: 1
+SFX Volume: 1
+Music Volume: 0.5
+
+SFX Library - Danh sach SFX can tao/import:
+
+  | Name          | Mo ta                    | Pitch | RandomPitch | Variance |
+  |---------------|--------------------------|-------|-------------|----------|
+  | TileRotate    | Tile xoay (click/whoosh) | 1.0   | true        | 0.1      |
+  | TileSwap      | Tile doi cho (slide)     | 1.0   | true        | 0.1      |
+  | ButtonClick   | Button UI nhan           | 1.0   | false       | 0.0      |
+  | TurretFire    | Turret ban (bang/pew)    | 1.0   | true        | 0.15     |
+  | TargetHit     | Target trung (ding)      | 1.0   | false       | 0.0      |
+  | LevelComplete | Win (fanfare)            | 1.0   | false       | 0.0      |
+  | LevelFail     | Fail (buzzer)            | 1.0   | false       | 0.0      |
+  | StarEarned    | Sao xuat hien (chime)    | 1.0   | true        | 0.05     |
+
+Music Library:
+
+  | Name           | Mo ta                |
+  |----------------|----------------------|
+  | GameplayMusic  | Nhac nen gameplay    |
+
+TIPS:
+  - AudioClip format: .ogg hoac .wav
+  - Import Settings: Force To Mono, Load Type = Decompress On Load (cho SFX)
+  - Music: Load Type = Streaming
+
+
+================================================================================
+9. SETUP UI
+================================================================================
+
+Tao UI Canvas:
+
+BUOC 9.1: Canvas Setup
+  - Tao Canvas: "[UICanvas]"
+  - Canvas:
+    Render Mode: Screen Space - Overlay
+    UI Scale Mode: Scale With Screen Size
+    Reference Resolution: 1080 x 1920 (portrait mobile)
+    Match Width Or Height: 0.5
+  - Them CanvasScaler component (auto khi tao Canvas)
+  - Them GraphicRaycaster component (auto)
+
+BUOC 9.2: Gameplay UI
+  - Tao child GO "GameplayUI" duoi Canvas
+  - Them script: GameplayUI.cs
+  - Tao cac child UI elements:
+
+    [TopBar]
+      LevelText (TextMeshPro - Text): "Level 1"
+      MoveCountText (TMP): "0"
+      StarSlots[3]: 3 Image objects cho 3 sao
+      PauseButton (Button)
+
+    [BottomBar]
+      PlayButton (Button): nut Play chay simulation
+      ResetButton (Button): nut Reset level
+      UndoButton (Button): nut Undo
+
+  Inspector GameplayUI:
+    Play Button: keo PlayButton
+    Reset Button: keo ResetButton
+    Undo Button: keo UndoButton
+    Pause Button: keo PauseButton
+    Level Text: keo LevelText (TMP)
+    Move Count Text: keo MoveCountText (TMP)
+    Star Slots: keo 3 Star Image transforms
+    Button Punch Scale: 0.2
+    Button Punch Duration: 0.2
+    Counter Punch Scale: 0.3
+
+BUOC 9.3: Win Panel
+  - Tao child GO "WinPanel" duoi Canvas
+  - Them script: WinPanel.cs
+  - Them CanvasGroup component
+  - Tao children:
+    Background (Image): overlay semi-transparent
+    Panel (Image): card trang
+      LevelCompleteText (TMP): "Level Complete!"
+      MoveCountText (TMP): "Moves: 0"
+      Stars[3]: 3 star Image objects
+      NextButton (Button)
+      RetryButton (Button)
+      HomeButton (Button)
+
+  Inspector WinPanel:
+    Panel Name: "WinPanel"  <- PHAI DUNG TEN NAY
+    Canvas Group: keo CanvasGroup
+    Level Complete Text: keo text
+    Move Count Text: keo text
+    Stars: keo 3 star transforms
+    Next Button, Retry Button, Home Button: keo tuong ung
+    Star Delay: 0.3
+    Star Scale Duration: 0.4
+    Star Ease: OutBack
+
+BUOC 9.4: Fail Panel
+  - Tao child GO "FailPanel" duoi Canvas
+  - Them script: FailPanel.cs
+  - Them CanvasGroup component
+  - Tao children:
+    Background (Image): overlay do mo
+    Panel (Image): card
+      FailText (TMP): "Level Failed"
+      FailIcon (Image): icon X hoac broken
+      RetryButton (Button)
+      HomeButton (Button)
+
+  Inspector FailPanel:
+    Panel Name: "FailPanel"  <- PHAI DUNG TEN NAY
+    Canvas Group: keo CanvasGroup
+    Fail Text: keo text
+    Retry Button, Home Button: keo buttons
+    Fail Icon: keo icon transform
+
+BUOC 9.5: Gan vao UIManager
+  [UIManager] Inspector > Panels:
+    [0] keo WinPanel
+    [1] keo FailPanel
+
+QUAN TRONG: Panel Name trong UIPanel script PHAI khop voi ten trong code:
+  - WinPanel.PanelName = "WinPanel"
+  - FailPanel.PanelName = "FailPanel"
+  Cac state WinState/FailState publish ShowPanelEvent voi ten nay.
+
+
+================================================================================
+10. TAO LEVEL DATA
+================================================================================
+
+TAO LEVEL MOI:
+  1. Right-click: ScriptableObjects/Levels/ > Create > BulletRoute > Level Data
+  2. Dat ten: Level_XX (VD: Level_01)
+  3. Dien thong tin:
+     - Level Index: 0-based (Level_01 = index 0)
+     - Grid Width x Height: theo level progression table
+     - Star thresholds: tuy design
+  4. Them Turrets (vi tri + huong ban)
+  5. Them Targets (vi tri)
+  6. Them Tiles (vi tri + loai + rotation + locked + extra data)
+  7. Keo vao LevelManager > Levels list
+
+VD SETUP LEVEL 01 (Tutorial 5x5, 1 turret, 1 target):
+
+  Turret o (0,4) ban sang Right
+  Target o (4,0)
+
+  Grid visualization (Y tu tren xuong):
+  Y=4: [T] [->] [->] [->] [  ]
+  Y=3: [  ] [  ] [  ] [CB] [  ]
+  Y=2: [  ] [  ] [  ] [| ] [  ]
+  Y=1: [  ] [  ] [  ] [CB] [  ]
+  Y=0: [  ] [  ] [  ] [->] [X ]
+
+  T = Turret (0,4) Fire: Right
+  -> = Straight, Rotation 1 (horizontal)
+  |  = Straight, Rotation 0 (vertical)
+  CB = Corner (can xoay dung)
+  X = Target (4,0)
+
+  Tiles:
+    (1,4) Straight Rot=1    <- dan di phai
+    (2,4) Straight Rot=1    <- dan tiep phai
+    (3,4) Corner   Rot=1    <- re xuong
+    (3,3) Straight Rot=0    <- dan di xuong
+    (3,2) Straight Rot=0    <- dan tiep xuong
+    (3,1) Corner   Rot=2    <- re phai
+    (3,0) Straight Rot=1    <- dan di phai den target
+
+  Player co the can xoay 1 so tile de giai puzzle.
+  De lam puzzle: dat 1 so tile sai rotation ban dau.
+
+
+================================================================================
+11. KIEM TRA VA DEBUG
+================================================================================
+
+CHECKLIST TRUOC KHI PLAY:
+  [ ] DOTween da import va setup
+  [ ] TextMeshPro da import
+  [ ] Scene co Main Camera voi CameraController
+  [ ] Co [GridCollider] voi BoxCollider tren layer "Grid"
+  [ ] InputManager co Grid Layer = "Grid"
+  [ ] TileFactory co DU 11 prefab entries
+  [ ] LevelManager co it nhat 1 LevelData
+  [ ] BulletManager co Bullet prefab
+  [ ] FXManager co cac FX entries (hoac de trong - se log warning)
+  [ ] UIManager co WinPanel va FailPanel
+  [ ] Panel names dung: "WinPanel", "FailPanel"
+  [ ] GameConfig ScriptableObject da tao va gan vao GameManager
+
+DEBUG COMMON ISSUES:
+  - "[ServiceLocator] Service not found: XXX"
+    -> Script XXX chua duoc add vao scene, hoac Awake() chua chay
+    -> Kiem tra co GO nao bi disable khong
+
+  - "[TileFactory] No prefab for tile type: XXX"
+    -> Thieu entry trong TileFactory Inspector
+
+  - "[FXManager] FX not found: XXX"
+    -> FX name trong FX Library khong khop voi code
+    -> Chi la warning, game van chay
+
+  - "[AudioManager] SFX not found: XXX"
+    -> Thieu AudioClip entry, chi la warning
+
+  - Dan khong di dung huong
+    -> Kiem tra Tile rotation trong LevelData
+    -> Kiem tra Turret Fire Direction
+
+  - Dan di xuyen qua tile
+    -> Kiem tra tile GetExitDirections logic
+    -> Kiem tra rotation state
+
+  - Khong click duoc tile
+    -> Kiem tra [GridCollider] co dung layer "Grid"
+    -> Kiem tra InputManager.GridLayer co chon "Grid"
+    -> Kiem tra BoxCollider co du lon
+    -> Kiem tra GameState = Setup (khong phai Simulating)
+
+
+================================================================================
+12. THEM FX VAO GAME
+================================================================================
+
+CACH THEM FX MOI:
+
+  Buoc 1: Tao ParticleSystem prefab
+    - Tao GO moi > Add ParticleSystem
+    - Design effect
+    - Save: Assets/_Game/Prefabs/FX/FX_TenEffect.prefab
+
+  Buoc 2: Them vao FXManager
+    - Chon [FXManager] trong scene
+    - Them entry moi vao FX Library:
+      Name: "TenEffect"
+      Prefab: keo prefab
+      Pool Size: 3-10
+      Life Time: thoi gian effect (s)
+
+  Buoc 3: Goi FX tu code (neu can)
+    EventBus.Publish(new FXRequestEvent
+    {
+        FXName = "TenEffect",
+        Position = transform.position,
+        Rotation = Quaternion.identity
+    });
+
+  Buoc 4 (Optional): Gan FX vao tile FX Spawn Points
+    - Moi tile co 5 FX spawn points: Center, Top, Bottom, Left, Right
+    - Keo Transform vao inspector hoac de code tu tao
+    - FX se spawn tai dung vi tri khi dan di qua
+
+NOI CO THE DAT FX (DANH SACH DAY DU):
+  - TileBase.AnimateBulletPass()     <- moi khi dan di qua bat ky tile
+  - BulletController.AnimateHitTarget() <- dan trung target
+  - BulletController.AnimateStop()    <- dan dung lai
+  - TurretController.AnimateChargeUp() <- turret charge
+  - TurretController.AnimateFire()    <- turret ban
+  - TargetController.AnimateHit()     <- target bi trung
+  - MirrorTile.AnimateBulletPass()    <- dan phan xa
+  - SplitterTile.AnimateBulletPass()  <- dan tach
+  - AbsorbTile.AnimateBulletPass()    <- dan bi nuot
+  - BombTile.AnimateExplosion()       <- bom no
+  - BlockTile.AnimateBulletPass()     <- dan va block
+  - PortalTile.AnimateTeleportIn/Out() <- dan teleport
+  - WinPanel.Show()                   <- win celebration
+  - WinPanel.AnimateStars()           <- sao xuat hien
+
+
+================================================================================
+13. CHECKLIST TONG HOP
+================================================================================
+
+PREFABS CAN TAO:
+  [ ] Tile_Straight.prefab     (StraightTile.cs)
+  [ ] Tile_Corner.prefab       (CornerTile.cs)
+  [ ] Tile_Cross.prefab        (CrossTile.cs)
+  [ ] Tile_Block.prefab        (BlockTile.cs)
+  [ ] Tile_Mirror.prefab       (MirrorTile.cs)
+  [ ] Tile_Splitter.prefab     (SplitterTile.cs)
+  [ ] Tile_Portal.prefab       (PortalTile.cs)
+  [ ] Tile_Bomb.prefab         (BombTile.cs)
+  [ ] Tile_Absorb.prefab       (AbsorbTile.cs)
+  [ ] Tile_Turret.prefab       (TurretController.cs)
+  [ ] Tile_Target.prefab       (TargetController.cs)
+  [ ] Bullet.prefab            (BulletController.cs)
+  [ ] 15 FX prefabs            (ParticleSystem)
+  [ ] UI prefabs (optional - co the lam truc tiep trong scene)
+
+SCRIPTABLEOBJECTS CAN TAO:
+  [ ] GameConfig               (1 cai)
+  [ ] LevelData                (it nhat 1, toi da 20+ theo GDD)
+
+SCENE GAMEOBJECTS CAN TAO:
+  [ ] Main Camera              + CameraController
+  [ ] [GridCollider]           + BoxCollider (layer: Grid)
+  [ ] [GameManager]            + GameManager.cs
+  [ ] [GridManager]            + GridManager.cs
+  [ ] [TileFactory]            + TileFactory.cs (gan 11 prefabs)
+  [ ] [LevelManager]           + LevelManager.cs (gan level list)
+  [ ] [BulletSimulator]        + BulletSimulator.cs
+  [ ] [BulletManager]          + BulletManager.cs (gan bullet prefab)
+  [ ] [GameStateManager]       + GameStateManager.cs
+  [ ] [InputManager]           + InputManager.cs (gan layer + camera)
+  [ ] [FXManager]              + FXManager.cs (gan FX library)
+  [ ] [AudioManager]           + AudioManager.cs (gan audio clips)
+  [ ] [UICanvas]               + Canvas + CanvasScaler
+  [ ]   [UIManager]            + UIManager.cs (gan panels)
+  [ ]   GameplayUI             + GameplayUI.cs (gan buttons + texts)
+  [ ]   WinPanel               + WinPanel.cs (PanelName = "WinPanel")
+  [ ]   FailPanel              + FailPanel.cs (PanelName = "FailPanel")
+
+ANIMATIONS DA CO SAN (DOTween - KHONG CAN SETUP THEM):
+  - Grid appear: tiles scale tu 0 -> 1 theo wave
+  - Tile select: scale up 1.15x
+  - Tile deselect: scale back + resume idle pulse
+  - Tile rotate: rotate + punch scale
+  - Tile swap: DOMove giua 2 vi tri
+  - Tile idle: pulse scale loop
+  - Tile highlight: scale loop (cho hints)
+  - Bullet spawn: scale 0 -> 1.2 -> 1
+  - Bullet move: DOMove per tile
+  - Bullet pulse: scale loop
+  - Bullet hit target: scale up -> scale 0
+  - Bullet stop: shake + scale 0
+  - Bullet teleport: scale 0 -> move -> scale 1
+  - Turret charge: scale up -> snap back
+  - Turret fire: barrel recoil + punch scale
+  - Target ring rotate: continuous rotation
+  - Target center pulse: scale loop
+  - Target hit: scale up + punch rotation + shrink + bounce
+  - Mirror flash: scale pulse on reflect
+  - Splitter: punch scale + rotation
+  - Bomb explode: scale up -> scale 0
+  - Absorb: scale up -> shrink -> bounce
+  - Block hit: shake position + rotation
+  - Portal spin: continuous rotation
+  - Portal teleport in/out: scale pulse
+  - Camera shake: DOShakePosition
+  - Camera focus: DOMove to position
+  - UI panel show: scale + fade in
+  - UI panel hide: scale + fade out
+  - UI button click: punch scale
+  - UI level text: punch scale
+  - UI move counter: punch scale
+  - Win stars: delayed scale + punch rotation
+  - Fail icon: shake rotation
+
+
+================================================================================
+END OF SETUP GUIDE
+================================================================================

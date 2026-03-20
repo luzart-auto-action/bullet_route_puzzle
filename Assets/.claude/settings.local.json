@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc \"D:\\\\Downloads\\\\Bullet Route Puzzle.docx\" -o /tmp/gdd.md)",
+      "Bash(python scripts/office/unpack.py \"D:/Downloads/Bullet Route Puzzle.docx\" /tmp/gdd_unpacked/)",
+      "Bash(python \"C:/Users/admin/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/97dba126-d6c3-44b8-8ca7-46617a767575/c4292d34-f69a-4047-8116-ddd6135b94af/skills/docx/scripts/office/unpack.py\" \"D:/Downloads/Bullet Route Puzzle.docx\" /tmp/gdd_unpacked/)",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(node generate_docs.js)",
+      "Read(//d/GithubUnity/BulletRoutePuzzle/**)",
+      "Bash(python3 -c \"import docx; print\\(''ok''\\)\")",
+      "Bash(python3 -m pip install python-docx)",
+      "Bash(python -c \"import docx; print\\(''ok''\\)\")",
+      "Bash(python -m pip install python-docx)",
+      "Bash(python -c \":*)"
+    ]
+  }
+}
