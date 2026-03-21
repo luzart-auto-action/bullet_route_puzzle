@@ -4,6 +4,8 @@ using BulletRoute.Core;
 using BulletRoute.Level;
 using BulletRoute.GameState;
 using BulletRoute.Data;
+using BulletRoute.Timer;
+using BulletRoute.UI;
 
 namespace BulletRoute.Core
 {
@@ -21,7 +23,6 @@ namespace BulletRoute.Core
 
         private void Awake()
         {
-            // Initialize DOTween
             DOTween.Init(true, true, LogBehaviour.ErrorsOnly)
                 .SetCapacity(_tweenCapacity, _sequenceCapacity);
             DOTween.defaultAutoPlay = AutoPlay.All;
@@ -37,36 +38,108 @@ namespace BulletRoute.Core
             _stateManager = ServiceLocator.Get<GameStateManager>();
             _levelManager = ServiceLocator.Get<LevelManager>();
 
-            // Subscribe to game events
-            EventBus.Subscribe<LevelCompletedEvent>(OnLevelCompleted);
-            EventBus.Subscribe<LevelFailedEvent>(OnLevelFailed);
+            // GameManager is the SINGLE orchestrator for all game events.
+            // No other system should subscribe to these button/state events.
             EventBus.Subscribe<PlayButtonPressedEvent>(OnPlayPressed);
             EventBus.Subscribe<ResetButtonPressedEvent>(OnResetPressed);
+            EventBus.Subscribe<LevelCompletedEvent>(OnLevelCompleted);
+            EventBus.Subscribe<LevelFailedEvent>(OnLevelFailed);
+            EventBus.Subscribe<GoToMainMenuEvent>(OnGoToMainMenu);
+            EventBus.Subscribe<TimerExpiredEvent>(OnTimerExpired);
 
-            // Start first level
-            StartGame();
+            // Start at Main Menu
+            _stateManager.ChangeState(GameStateType.MainMenu);
         }
 
-        private void StartGame()
+        // ==================== PUBLIC API (called by UI panels) ====================
+
+        /// <summary>
+        /// Called by UIMainMenu when Play is pressed. Loads current level.
+        /// </summary>
+        public void StartCurrentLevel()
         {
-            _stateManager.ChangeState(GameStateType.Loading);
-
             int currentLevel = PlayerProgressData.GetCurrentLevel();
-            _levelManager.LoadLevel(currentLevel);
-
-            _stateManager.ChangeState(GameStateType.Setup);
-
+            LoadLevel(currentLevel);
             EventBus.Publish(new PlayMusicEvent { TrackName = "GameplayMusic" });
         }
 
+        /// <summary>
+        /// Load a specific level. Clears old level, rebuilds, starts timer.
+        /// Can be called from any state (Win, Fail, Setup, etc.)
+        /// </summary>
+        public void LoadLevel(int index)
+        {
+            // Stop everything from previous level
+            _levelManager.StopAllBullets();
+            var timer = ServiceLocator.Get<LevelTimer>();
+            timer?.StopTimer();
+
+            // Force-hide all popup panels immediately (no animation)
+            // This prevents animation conflicts when transitioning from Win/Fail
+            ForceHideAllPanels();
+
+            // Clear old level
+            _levelManager.ClearLevel();
+
+            // Load new level
+            _stateManager.ChangeState(GameStateType.Loading);
+            _levelManager.LoadLevel(index);
+            _stateManager.ChangeState(GameStateType.Setup);
+
+            // Start timer
+            if (timer != null && _levelManager.CurrentLevel != null)
+            {
+                timer.StartTimer(_levelManager.CurrentLevel.TimeLimit, index);
+            }
+        }
+
+        /// <summary>
+        /// Load next level. Called by WinPanel.
+        /// </summary>
+        public void NextLevel()
+        {
+            int next = _levelManager.CurrentLevelIndex + 1;
+            PlayerProgressData.SetCurrentLevel(next);
+            LoadLevel(next);
+        }
+
+        /// <summary>
+        /// Return to main menu. Called by any panel Home button.
+        /// </summary>
+        public void GoToMainMenu()
+        {
+            _levelManager.StopAllBullets();
+            var timer = ServiceLocator.Get<LevelTimer>();
+            timer?.StopTimer();
+
+            ForceHideAllPanels();
+            _levelManager.ClearLevel();
+
+            Time.timeScale = 1f;
+
+            _stateManager.ChangeState(GameStateType.MainMenu);
+        }
+
+        private void ForceHideAllPanels()
+        {
+            var uiManager = ServiceLocator.Get<UI.UIManager>();
+            uiManager?.ForceHideAll();
+        }
+
+        // ==================== EVENT HANDLERS (single point of control) ====================
+
         private void OnPlayPressed(PlayButtonPressedEvent evt)
         {
+            if (_stateManager.CurrentStateType != GameStateType.Setup) return;
+
             _stateManager.ChangeState(GameStateType.Simulating);
+            _levelManager.FireBullets();
         }
 
         private void OnResetPressed(ResetButtonPressedEvent evt)
         {
-            _stateManager.ChangeState(GameStateType.Setup);
+            // Reload current level from scratch
+            LoadLevel(_levelManager.CurrentLevelIndex);
         }
 
         private void OnLevelCompleted(LevelCompletedEvent evt)
@@ -77,29 +150,30 @@ namespace BulletRoute.Core
 
         private void OnLevelFailed(LevelFailedEvent evt)
         {
+            _levelManager.StopAllBullets();
             _stateManager.ChangeState(GameStateType.Fail);
         }
 
-        public void LoadLevel(int index)
+        private void OnGoToMainMenu(GoToMainMenuEvent evt)
         {
-            _stateManager.ChangeState(GameStateType.Loading);
-            _levelManager.LoadLevel(index);
-            _stateManager.ChangeState(GameStateType.Setup);
+            GoToMainMenu();
         }
 
-        public void NextLevel()
+        private void OnTimerExpired(TimerExpiredEvent evt)
         {
-            int next = _levelManager.CurrentLevelIndex + 1;
-            PlayerProgressData.SetCurrentLevel(next);
-            LoadLevel(next);
+            EventBus.Publish(new LevelFailedEvent { LevelIndex = evt.LevelIndex });
         }
+
+        // ==================== CLEANUP ====================
 
         private void OnDestroy()
         {
-            EventBus.Unsubscribe<LevelCompletedEvent>(OnLevelCompleted);
-            EventBus.Unsubscribe<LevelFailedEvent>(OnLevelFailed);
             EventBus.Unsubscribe<PlayButtonPressedEvent>(OnPlayPressed);
             EventBus.Unsubscribe<ResetButtonPressedEvent>(OnResetPressed);
+            EventBus.Unsubscribe<LevelCompletedEvent>(OnLevelCompleted);
+            EventBus.Unsubscribe<LevelFailedEvent>(OnLevelFailed);
+            EventBus.Unsubscribe<GoToMainMenuEvent>(OnGoToMainMenu);
+            EventBus.Unsubscribe<TimerExpiredEvent>(OnTimerExpired);
 
             ServiceLocator.Clear();
             EventBus.Clear();

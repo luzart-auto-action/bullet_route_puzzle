@@ -34,5 +34,13 @@ namespace BulletRoute.Data
         public float CameraHeight = 10f;
         public float CameraAngle = 60f;
         public float CameraPadding = 2f;
+
+        [Header("Timer")]
+        public float TimerWarningThreshold = 10f;
+        public Color TimerNormalColor = Color.white;
+        public Color TimerWarningColor = Color.red;
+
+        [Header("Grid Visual")]
+        public Color CellBackgroundColor = new Color(0.15f, 0.15f, 0.2f, 1f);
     }
 }

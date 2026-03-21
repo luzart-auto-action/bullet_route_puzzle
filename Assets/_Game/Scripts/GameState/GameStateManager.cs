@@ -24,6 +24,7 @@ namespace BulletRoute.GameState
             ServiceLocator.Register(this);
 
             // Register states
+            RegisterState(new MainMenuState());
             RegisterState(new LoadingState());
             RegisterState(new SetupState());
             RegisterState(new SimulatingState());
@@ -69,6 +70,20 @@ namespace BulletRoute.GameState
     }
 
     // === State Implementations ===
+    public class MainMenuState : IGameState
+    {
+        public GameStateType StateType => GameStateType.MainMenu;
+        public void Enter()
+        {
+            EventBus.Publish(new ShowPanelEvent { PanelName = "MainMenu" });
+        }
+        public void Update() { }
+        public void Exit()
+        {
+            EventBus.Publish(new HidePanelEvent { PanelName = "MainMenu" });
+        }
+    }
+
     public class LoadingState : IGameState
     {
         public GameStateType StateType => GameStateType.Loading;

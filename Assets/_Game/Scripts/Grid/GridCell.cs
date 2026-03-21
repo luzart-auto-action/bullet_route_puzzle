@@ -26,5 +26,7 @@ namespace BulletRoute.Grid
         {
             TileInstance = null;
         }
+
+        public GameObject BackgroundObject { get; set; }
     }
 }

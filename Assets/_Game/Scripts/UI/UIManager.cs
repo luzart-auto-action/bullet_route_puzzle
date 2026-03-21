@@ -65,6 +65,28 @@ namespace BulletRoute.UI
                 panel.Hide();
         }
 
+        /// <summary>
+        /// Immediately deactivate all panels without animation.
+        /// Used when transitioning between major states (Win->Loading, Fail->Loading).
+        /// </summary>
+        public void ForceHideAll()
+        {
+            foreach (var panel in _panelMap.Values)
+            {
+                if (panel == null) continue;
+                DOTween.Kill(panel.transform);
+                var cg = panel.GetComponent<CanvasGroup>();
+                if (cg != null)
+                {
+                    DOTween.Kill(cg);
+                    cg.alpha = 0f;
+                    cg.interactable = false;
+                    cg.blocksRaycasts = false;
+                }
+                panel.gameObject.SetActive(false);
+            }
+        }
+
         public T GetPanel<T>(string name) where T : UIPanel
         {
             if (_panelMap.TryGetValue(name, out var panel))

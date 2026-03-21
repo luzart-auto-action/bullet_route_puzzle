@@ -18,10 +18,15 @@ namespace BulletRoute.Grid
         [SerializeField] private float _cellAppearDelay = 0.03f;
         [SerializeField] private Ease _cellAppearEase = Ease.OutBack;
 
+        [Header("Cell Background")]
+        [SerializeField] private Color _cellBgColor = new Color(0.15f, 0.15f, 0.2f, 1f);
+        [SerializeField] private Material _cellBgMaterial;
+
         private GridCell[,] _cells;
         private int _width;
         private int _height;
         private Vector3 _gridOrigin;
+        private Material _runtimeCellBgMat;
 
         public int Width => _width;
         public int Height => _height;
@@ -45,12 +50,20 @@ namespace BulletRoute.Grid
             float totalHeight = height * TotalCellSize - _cellSpacing;
             _gridOrigin = new Vector3(-totalWidth / 2f + _cellSize / 2f, 0f, -totalHeight / 2f + _cellSize / 2f);
 
+            // Ensure cell background material
+            if (_cellBgMaterial == null)
+            {
+                _runtimeCellBgMat = new Material(Shader.Find("Unlit/Color"));
+                _runtimeCellBgMat.color = _cellBgColor;
+            }
+
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < height; y++)
                 {
                     var cell = new GridCell(new Vector2Int(x, y), GridToWorldPosition(x, y));
                     _cells[x, y] = cell;
+                    CreateCellBackground(cell);
                 }
             }
 
@@ -59,22 +72,54 @@ namespace BulletRoute.Grid
 
         public void AnimateGridAppear(System.Action onComplete = null)
         {
-            Sequence seq = DOTween.Sequence();
+            DOTween.Kill(this); // Kill any previous grid animation
+            Sequence seq = DOTween.Sequence().SetId(this);
             for (int x = 0; x < _width; x++)
             {
                 for (int y = 0; y < _height; y++)
                 {
                     var cell = _cells[x, y];
+                    float delay = (x + y) * _cellAppearDelay;
+
+                    // Animate cell background
+                    if (cell.BackgroundObject != null)
+                    {
+                        cell.BackgroundObject.transform.localScale = Vector3.zero;
+                        seq.Insert(delay, cell.BackgroundObject.transform
+                            .DOScale(new Vector3(_cellSize, _cellSize, 1f), _cellAppearDuration)
+                            .SetEase(_cellAppearEase));
+                    }
+
+                    // Animate tile
                     if (cell.TileInstance != null)
                     {
                         var t = cell.TileInstance.transform;
                         t.localScale = Vector3.zero;
-                        float delay = (x + y) * _cellAppearDelay;
-                        seq.Insert(delay, t.DOScale(Vector3.one, _cellAppearDuration).SetEase(_cellAppearEase));
+                        seq.Insert(delay + 0.05f, t.DOScale(Vector3.one, _cellAppearDuration).SetEase(_cellAppearEase));
                     }
                 }
             }
             seq.OnComplete(() => onComplete?.Invoke());
+        }
+
+        private void CreateCellBackground(GridCell cell)
+        {
+            var bg = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            bg.name = $"CellBg_{cell.Position.x}_{cell.Position.y}";
+
+            // Remove collider so it doesn't block raycast
+            var col = bg.GetComponent<MeshCollider>();
+            if (col != null) Destroy(col);
+
+            bg.transform.SetParent(_gridParent != null ? _gridParent : transform, false);
+            bg.transform.position = cell.WorldPosition + Vector3.down * 0.01f;
+            bg.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            bg.transform.localScale = new Vector3(_cellSize, _cellSize, 1f);
+
+            var renderer = bg.GetComponent<Renderer>();
+            renderer.material = _cellBgMaterial != null ? _cellBgMaterial : _runtimeCellBgMat;
+
+            cell.BackgroundObject = bg;
         }
 
         public Vector3 GridToWorldPosition(int x, int y)
@@ -159,14 +204,21 @@ namespace BulletRoute.Grid
 
         public void ClearGrid()
         {
+            // Kill any running grid animations first
+            DOTween.Kill(this);
+
             if (_cells == null) return;
             for (int x = 0; x < _width; x++)
             {
                 for (int y = 0; y < _height; y++)
                 {
                     var cell = _cells[x, y];
-                    if (cell?.TileInstance != null)
-                        Destroy(cell.TileInstance.gameObject);
+                    if (cell?.BackgroundObject != null)
+                    {
+                        DOTween.Kill(cell.BackgroundObject.transform);
+                        DestroyImmediate(cell.BackgroundObject);
+                        cell.BackgroundObject = null;
+                    }
                 }
             }
             _cells = null;

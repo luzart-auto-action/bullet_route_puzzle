@@ -12,7 +12,17 @@
       "Bash(python3 -m pip install python-docx)",
       "Bash(python -c \"import docx; print\\(''ok''\\)\")",
       "Bash(python -m pip install python-docx)",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(find /tmp -name document.xml)",
+      "Read(//tmp/**)",
+      "Bash(ls /tmp/)",
+      "Bash(node generate_doc.js)",
+      "Bash(npm root:*)",
+      "Bash(NODE_PATH=\"C:/Users/admin/AppData/Roaming/npm/node_modules\" node generate_doc.js)",
+      "Bash(python scripts/office/validate.py \"D:/GithubUnity/BulletRoutePuzzle/Assets/_Game/BulletRoutePuzzle_SetupGuide_v2.docx\")",
+      "Bash(grep -l m_Material D:/GithubUnity/BulletRoutePuzzle/Assets/_Game/Prefabs/**/*.prefab)",
+      "Bash(node create_docx.js)",
+      "Bash(python \"C:/Users/admin/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/97dba126-d6c3-44b8-8ca7-46617a767575/c4292d34-f69a-4047-8116-ddd6135b94af/skills/docx/scripts/office/validate.py\" \"D:/GithubUnity/BulletRoutePuzzle/BulletRoute_SetupGuide.docx\")"
     ]
   }
 }

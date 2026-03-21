@@ -100,6 +100,8 @@ namespace BulletRoute.Core
         public int LevelIndex;
         public int Stars;
         public int MoveCount;
+        public float TimeRemaining;
+        public float TimeLimit;
     }
 
     public struct LevelFailedEvent : IGameEvent
@@ -121,6 +123,25 @@ namespace BulletRoute.Core
 
     public struct PlayButtonPressedEvent : IGameEvent { }
     public struct ResetButtonPressedEvent : IGameEvent { }
+    public struct GoToMainMenuEvent : IGameEvent { }
+    public struct HintRequestedEvent : IGameEvent { }
+
+    // === Timer Events ===
+    public struct TimerStartedEvent : IGameEvent
+    {
+        public float TimeLimit;
+    }
+
+    public struct TimerTickEvent : IGameEvent
+    {
+        public float TimeRemaining;
+        public float TimeLimit;
+    }
+
+    public struct TimerExpiredEvent : IGameEvent
+    {
+        public int LevelIndex;
+    }
 
     public enum MoveType
     {
@@ -130,6 +151,7 @@ namespace BulletRoute.Core
 
     public enum GameStateType
     {
+        MainMenu,
         Loading,
         Setup,
         Playing,

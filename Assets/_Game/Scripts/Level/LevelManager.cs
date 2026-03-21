@@ -49,19 +49,8 @@ namespace BulletRoute.Level
             _bulletManager = ServiceLocator.Get<BulletManager>();
         }
 
-        private void OnEnable()
-        {
-            EventBus.Subscribe<PlayButtonPressedEvent>(OnPlayPressed);
-            EventBus.Subscribe<ResetButtonPressedEvent>(OnResetPressed);
-            EventBus.Subscribe<LevelFailedEvent>(OnLevelFailed);
-        }
-
-        private void OnDisable()
-        {
-            EventBus.Unsubscribe<PlayButtonPressedEvent>(OnPlayPressed);
-            EventBus.Unsubscribe<ResetButtonPressedEvent>(OnResetPressed);
-            EventBus.Unsubscribe<LevelFailedEvent>(OnLevelFailed);
-        }
+        // LevelManager is a WORKER - GameManager is the orchestrator.
+        // No direct event subscriptions here to avoid double-handler bugs.
 
         public void LoadLevel(int index)
         {
@@ -86,10 +75,10 @@ namespace BulletRoute.Level
         {
             _gridManager.InitializeGrid(data.GridWidth, data.GridHeight);
 
-            if (_tileParent == null)
-            {
-                _tileParent = new GameObject("[Tiles]").transform;
-            }
+            // ClearLevel() already destroyed _tileParent, create fresh one
+            if (_tileParent != null)
+                DestroyImmediate(_tileParent.gameObject);
+            _tileParent = new GameObject("[Tiles]").transform;
 
             // Place tiles
             foreach (var placement in data.Tiles)
@@ -144,9 +133,18 @@ namespace BulletRoute.Level
             _gridManager.AnimateGridAppear();
         }
 
-        private void OnPlayPressed(PlayButtonPressedEvent evt)
+        public void FireBullets()
         {
             if (_bulletSimulator.IsSimulating) return;
+
+            // Reset targets before each fire (for re-fire support)
+            foreach (var target in _targets)
+            {
+                target.ResetTarget();
+            }
+
+            // Return any leftover bullets
+            _bulletManager.ReturnAllBullets();
 
             // Build turret data list
             var turretDataList = new List<BulletRoute.Bullet.TurretData>();
@@ -169,17 +167,11 @@ namespace BulletRoute.Level
             });
         }
 
-        private void OnResetPressed(ResetButtonPressedEvent evt)
-        {
-            ResetLevel();
-        }
-
         public void ResetLevel()
         {
             _bulletSimulator.StopSimulation();
             _bulletManager.ReturnAllBullets();
 
-            // Reset targets
             foreach (var target in _targets)
             {
                 target.ResetTarget();
@@ -190,15 +182,10 @@ namespace BulletRoute.Level
             EventBus.Publish(new LevelResetEvent { LevelIndex = _currentLevelIndex });
         }
 
-        public int CalculateCurrentStars()
+        public void StopAllBullets()
         {
-            return _currentLevel.CalculateStars(_commandManager.MoveCount);
-        }
-
-        private void OnLevelFailed(LevelFailedEvent evt)
-        {
-            // Auto-reset after delay
-            DOVirtual.DelayedCall(1.5f, () => ResetLevel());
+            _bulletSimulator.StopSimulation();
+            _bulletManager.ReturnAllBullets();
         }
 
         public void LoadNextLevel()
@@ -207,16 +194,20 @@ namespace BulletRoute.Level
             LoadLevel(_currentLevelIndex + 1);
         }
 
-        private void ClearLevel()
+        public void ClearLevel()
         {
+            DOTween.KillAll(false); // Kill ALL tweens to prevent any stale references
+
             _bulletSimulator.StopSimulation();
             _bulletManager.ReturnAllBullets();
             _gridManager.ClearGrid();
 
+            // Destroy tile parent immediately
             if (_tileParent != null)
             {
-                foreach (Transform child in _tileParent)
-                    Destroy(child.gameObject);
+                // DestroyImmediate ensures tiles are gone before new level builds
+                DestroyImmediate(_tileParent.gameObject);
+                _tileParent = null;
             }
 
             _turrets.Clear();

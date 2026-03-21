@@ -29,6 +29,9 @@ namespace BulletRoute.UI
         {
             base.Show();
 
+            if (_failText != null)
+                _failText.text = "Time's Up!";
+
             if (_failIcon != null)
             {
                 _failIcon.DOShakeRotation(0.5f, 30f, 10, 90f).SetUpdate(true);
@@ -40,14 +43,19 @@ namespace BulletRoute.UI
 
         private void OnRetryClicked()
         {
-            Hide();
-            EventBus.Publish(new ResetButtonPressedEvent());
+            // State transition (Fail -> Loading) will hide this panel via FailState.Exit()
+            var gm = ServiceLocator.Get<GameManager>();
+            var lm = ServiceLocator.Get<Level.LevelManager>();
+            if (gm != null && lm != null)
+            {
+                gm.LoadLevel(lm.CurrentLevelIndex);
+            }
         }
 
         private void OnHomeClicked()
         {
-            Hide();
-            EventBus.Publish(new ShowPanelEvent { PanelName = "MainMenu" });
+            // State transition handles hiding
+            EventBus.Publish(new GoToMainMenuEvent());
         }
     }
 }

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e43d25014dbb1a244b36a37665eebf34, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: 
+  CellSize: 1.2
+  CellSpacing: 0.1
+  BulletSpeedPerTile: 0.5
+  BulletSpawnDelay: 0.3
+  MaxBulletSteps: 100
+  TileRotateDuration: 0.25
+  TileSwapDuration: 0.3
+  GridAppearDelay: 0.03
+  LevelTransitionDuration: 0.5
+  TileRotateEase: 27
+  TileSwapEase: 6
+  GridAppearEase: 27
+  AutoResetDelay: 1.5
+  WinPanelDelay: 0.5
+  CameraHeight: 10
+  CameraAngle: 60
+  CameraPadding: 2
+  TimerWarningThreshold: 10
+  TimerNormalColor: {r: 1, g: 1, b: 1, a: 1}
+  TimerWarningColor: {r: 1, g: 0, b: 0, a: 1}
+  CellBackgroundColor: {r: 0.15, g: 0.15, b: 0.2, a: 1}

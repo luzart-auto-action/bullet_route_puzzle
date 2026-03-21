@@ -5,6 +5,8 @@ using BulletRoute.Core;
 using BulletRoute.Grid;
 using BulletRoute.Tile;
 using BulletRoute.Level;
+using BulletRoute.Timer;
+using BulletRoute.GameState;
 
 namespace BulletRoute.Bullet
 {
@@ -22,6 +24,10 @@ namespace BulletRoute.Bullet
         private List<BulletController> _activeBullets = new List<BulletController>();
 
         public bool IsSimulating => _isSimulating;
+        private void Awake()
+        {
+            ServiceLocator.Register(this);
+        }
 
         private void Start()
         {
@@ -349,14 +355,20 @@ namespace BulletRoute.Bullet
                 DOVirtual.DelayedCall(0.5f, () =>
                 {
                     var levelManager = ServiceLocator.Get<LevelManager>();
-                    int stars = levelManager != null ? levelManager.CalculateCurrentStars() : 1;
+                    var timer = ServiceLocator.Get<Timer.LevelTimer>();
                     int moves = levelManager != null ? levelManager.MoveCount : 0;
                     int levelIdx = levelManager != null ? levelManager.CurrentLevelIndex : 0;
+                    float timeRemaining = timer != null ? timer.TimeRemaining : 0f;
+                    float timeLimit = timer != null ? timer.TimeLimit : 0f;
+                    int stars = levelManager?.CurrentLevel != null
+                        ? levelManager.CurrentLevel.CalculateStarsByTime(timeRemaining) : 1;
                     EventBus.Publish(new LevelCompletedEvent
                     {
                         LevelIndex = levelIdx,
                         Stars = stars,
-                        MoveCount = moves
+                        MoveCount = moves,
+                        TimeRemaining = timeRemaining,
+                        TimeLimit = timeLimit
                     });
                 });
             }
@@ -373,12 +385,24 @@ namespace BulletRoute.Bullet
 
             if (allDone && _targetsRemaining > 0)
             {
+                // All bullets stopped but targets remain.
+                // Don't fail immediately - let player fire again.
+                // Just return to Setup state so they can adjust and re-fire.
                 _isSimulating = false;
-                DOVirtual.DelayedCall(0.5f, () =>
+                DOVirtual.DelayedCall(0.3f, () =>
                 {
-                    var levelManager = ServiceLocator.Get<LevelManager>();
-                    int levelIdx = levelManager != null ? levelManager.CurrentLevelIndex : 0;
-                    EventBus.Publish(new LevelFailedEvent { LevelIndex = levelIdx });
+                    // Return bullets to pool
+                    var bulletManager = ServiceLocator.Get<BulletManager>();
+                    bulletManager?.ReturnAllBullets();
+                    _activeBullets.Clear();
+
+                    // Back to Setup so player can adjust tiles and fire again
+                    // Timer keeps running - no restart
+                    var stateManager = ServiceLocator.Get<GameStateManager>();
+                    if (stateManager != null && stateManager.CurrentStateType == GameStateType.Simulating)
+                    {
+                        stateManager.ChangeState(GameStateType.Setup);
+                    }
                 });
             }
         }

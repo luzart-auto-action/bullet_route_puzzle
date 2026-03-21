@@ -16,7 +16,14 @@ namespace BulletRoute.Level
         public int GridWidth = 5;
         public int GridHeight = 5;
 
-        [Header("Star Thresholds (moves)")]
+        [Header("Timer")]
+        public float TimeLimit = 60f;
+
+        [Header("Star Thresholds (time remaining)")]
+        public float ThreeStarTime = 40f;
+        public float TwoStarTime = 20f;
+
+        [Header("Star Thresholds (moves - legacy)")]
         public int ThreeStar = 5;
         public int TwoStar = 8;
         public int OneStar = 12;
@@ -37,7 +44,14 @@ namespace BulletRoute.Level
             if (moveCount <= ThreeStar) return 3;
             if (moveCount <= TwoStar) return 2;
             if (moveCount <= OneStar) return 1;
-            return 1; // minimum 1 star for completion
+            return 1;
+        }
+
+        public int CalculateStarsByTime(float timeRemaining)
+        {
+            if (timeRemaining >= ThreeStarTime) return 3;
+            if (timeRemaining >= TwoStarTime) return 2;
+            return 1;
         }
     }
 

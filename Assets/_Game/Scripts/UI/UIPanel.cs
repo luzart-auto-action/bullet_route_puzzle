@@ -39,6 +39,7 @@ namespace BulletRoute.UI
             transform.localScale = _showFromScale;
             _canvasGroup.alpha = _showFromAlpha;
             _canvasGroup.interactable = false;
+            _canvasGroup.blocksRaycasts = true;
 
             _currentAnimation = DOTween.Sequence()
                 .Append(transform.DOScale(Vector3.one, _showDuration).SetEase(_showEase))
@@ -49,8 +50,11 @@ namespace BulletRoute.UI
 
         public virtual void Hide()
         {
+            if (!gameObject.activeSelf) return;
+
             _currentAnimation?.Kill();
             _canvasGroup.interactable = false;
+            _canvasGroup.blocksRaycasts = false;
 
             _currentAnimation = DOTween.Sequence()
                 .Append(transform.DOScale(_showFromScale, _hideDuration).SetEase(_hideEase))

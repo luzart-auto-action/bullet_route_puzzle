@@ -99,6 +99,9 @@ namespace BulletRoute.Bullet
             _pulseTween?.Kill();
             _moveTween?.Kill();
 
+            // Mark inactive IMMEDIATELY
+            _isActive = false;
+
             if (_visualRoot == null) return;
 
             DOTween.Sequence()
@@ -106,7 +109,6 @@ namespace BulletRoute.Bullet
                 .Append(_visualRoot.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack))
                 .OnComplete(() =>
                 {
-                    _isActive = false;
                     EventBus.Publish(new FXRequestEvent
                     {
                         FXName = "BulletHitTarget",
@@ -121,6 +123,9 @@ namespace BulletRoute.Bullet
             _pulseTween?.Kill();
             _moveTween?.Kill();
 
+            // Mark inactive IMMEDIATELY so BulletSimulator can detect all bullets are done
+            _isActive = false;
+
             if (_visualRoot == null) return;
 
             DOTween.Sequence()
@@ -128,7 +133,6 @@ namespace BulletRoute.Bullet
                 .Append(_visualRoot.DOScale(Vector3.zero, _despawnScaleTime).SetEase(Ease.InBack))
                 .OnComplete(() =>
                 {
-                    _isActive = false;
                     EventBus.Publish(new FXRequestEvent
                     {
                         FXName = "BulletStop",
