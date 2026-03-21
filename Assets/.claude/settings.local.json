@@ -22,7 +22,8 @@
       "Bash(python scripts/office/validate.py \"D:/GithubUnity/BulletRoutePuzzle/Assets/_Game/BulletRoutePuzzle_SetupGuide_v2.docx\")",
       "Bash(grep -l m_Material D:/GithubUnity/BulletRoutePuzzle/Assets/_Game/Prefabs/**/*.prefab)",
       "Bash(node create_docx.js)",
-      "Bash(python \"C:/Users/admin/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/97dba126-d6c3-44b8-8ca7-46617a767575/c4292d34-f69a-4047-8116-ddd6135b94af/skills/docx/scripts/office/validate.py\" \"D:/GithubUnity/BulletRoutePuzzle/BulletRoute_SetupGuide.docx\")"
+      "Bash(python \"C:/Users/admin/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/97dba126-d6c3-44b8-8ca7-46617a767575/c4292d34-f69a-4047-8116-ddd6135b94af/skills/docx/scripts/office/validate.py\" \"D:/GithubUnity/BulletRoutePuzzle/BulletRoute_SetupGuide.docx\")",
+      "Bash(find D:/GithubUnity/BulletRoutePuzzle/Assets/_Game/Scripts/Editor -type f -name *.cs)"
     ]
   }
 }
