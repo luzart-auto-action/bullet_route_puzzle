@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: Level_04
   m_EditorClassIdentifier: 
   LevelIndex: 3
-  LevelName: Mirror Mirror
+  LevelName: Reflection
   WorldIndex: 0
   GridWidth: 5
   GridHeight: 5
-  TimeLimit: 75
-  ThreeStarTime: 50
-  TwoStarTime: 25
+  TimeLimit: 85
+  ThreeStarTime: 60
+  TwoStarTime: 30
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8

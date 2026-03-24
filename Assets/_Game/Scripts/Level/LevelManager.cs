@@ -138,13 +138,11 @@ namespace BulletRoute.Level
         {
             if (_bulletSimulator.IsSimulating) return;
 
-            // Reset targets before each fire (for re-fire support)
+            // Reset all targets and return leftover bullets
             foreach (var target in _targets)
             {
                 target.ResetTarget();
             }
-
-            // Return any leftover bullets
             _bulletManager.ReturnAllBullets();
 
             // Build turret data list
@@ -166,6 +164,14 @@ namespace BulletRoute.Level
             {
                 _bulletSimulator.StartSimulation(turretDataList, _targets.Count);
             });
+        }
+
+        public void ResetAllTargets()
+        {
+            foreach (var target in _targets)
+            {
+                target.ResetTarget();
+            }
         }
 
         public void ResetLevel()

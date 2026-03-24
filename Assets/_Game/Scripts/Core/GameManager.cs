@@ -9,6 +9,11 @@ using BulletRoute.UI;
 
 namespace BulletRoute.Core
 {
+    /// <summary>
+    /// Central orchestrator. ONLY GameManager subscribes to user-action events.
+    /// Controls panel visibility: GameplayUI shown during gameplay, hidden at menu/win/fail.
+    /// Stores LevelCompletedEvent data for WinPanel to read in Show().
+    /// </summary>
     public class GameManager : MonoBehaviour
     {
         [Header("Config")]
@@ -20,6 +25,11 @@ namespace BulletRoute.Core
 
         private GameStateManager _stateManager;
         private LevelManager _levelManager;
+
+        /// <summary>
+        /// Last level completion data. WinPanel reads this in Show().
+        /// </summary>
+        public LevelCompletedEvent LastCompletedEvent { get; private set; }
 
         private void Awake()
         {
@@ -39,7 +49,6 @@ namespace BulletRoute.Core
             _levelManager = ServiceLocator.Get<LevelManager>();
 
             // GameManager is the SINGLE orchestrator for all game events.
-            // No other system should subscribe to these button/state events.
             EventBus.Subscribe<PlayButtonPressedEvent>(OnPlayPressed);
             EventBus.Subscribe<ResetButtonPressedEvent>(OnResetPressed);
             EventBus.Subscribe<LevelCompletedEvent>(OnLevelCompleted);
@@ -51,11 +60,8 @@ namespace BulletRoute.Core
             _stateManager.ChangeState(GameStateType.MainMenu);
         }
 
-        // ==================== PUBLIC API (called by UI panels) ====================
+        // ==================== PUBLIC API ====================
 
-        /// <summary>
-        /// Called by UIMainMenu when Play is pressed. Loads current level.
-        /// </summary>
         public void StartCurrentLevel()
         {
             int currentLevel = PlayerProgressData.GetCurrentLevel();
@@ -63,39 +69,28 @@ namespace BulletRoute.Core
             EventBus.Publish(new PlayMusicEvent { TrackName = "GameplayMusic" });
         }
 
-        /// <summary>
-        /// Load a specific level. Clears old level, rebuilds, starts timer.
-        /// Can be called from any state (Win, Fail, Setup, etc.)
-        /// </summary>
         public void LoadLevel(int index)
         {
-            // Stop everything from previous level
             _levelManager.StopAllBullets();
             var timer = ServiceLocator.Get<LevelTimer>();
             timer?.StopTimer();
 
-            // Force-hide all popup panels immediately (no animation)
-            // This prevents animation conflicts when transitioning from Win/Fail
+            // Kill all panels (MainMenu, Win, Fail, GameplayUI, popups)
             ForceHideAllPanels();
 
-            // Clear old level
             _levelManager.ClearLevel();
-
-            // Load new level
             _stateManager.ChangeState(GameStateType.Loading);
+
+            // Show GameplayUI BEFORE LoadLevel so it receives LevelStartedEvent
+            ShowPanel("GameplayUI");
+
             _levelManager.LoadLevel(index);
             _stateManager.ChangeState(GameStateType.Setup);
 
-            // Start timer
             if (timer != null && _levelManager.CurrentLevel != null)
-            {
                 timer.StartTimer(_levelManager.CurrentLevel.TimeLimit, index);
-            }
         }
 
-        /// <summary>
-        /// Load next level. Called by WinPanel.
-        /// </summary>
         public void NextLevel()
         {
             int next = _levelManager.CurrentLevelIndex + 1;
@@ -103,9 +98,6 @@ namespace BulletRoute.Core
             LoadLevel(next);
         }
 
-        /// <summary>
-        /// Return to main menu. Called by any panel Home button.
-        /// </summary>
         public void GoToMainMenu()
         {
             _levelManager.StopAllBullets();
@@ -116,41 +108,40 @@ namespace BulletRoute.Core
             _levelManager.ClearLevel();
 
             Time.timeScale = 1f;
-
             _stateManager.ChangeState(GameStateType.MainMenu);
         }
 
-        private void ForceHideAllPanels()
-        {
-            var uiManager = ServiceLocator.Get<UI.UIManager>();
-            uiManager?.ForceHideAll();
-        }
-
-        // ==================== EVENT HANDLERS (single point of control) ====================
+        // ==================== EVENT HANDLERS ====================
 
         private void OnPlayPressed(PlayButtonPressedEvent evt)
         {
             if (_stateManager.CurrentStateType != GameStateType.Setup) return;
-
             _stateManager.ChangeState(GameStateType.Simulating);
             _levelManager.FireBullets();
         }
 
         private void OnResetPressed(ResetButtonPressedEvent evt)
         {
-            // Reload current level from scratch
             LoadLevel(_levelManager.CurrentLevelIndex);
         }
 
         private void OnLevelCompleted(LevelCompletedEvent evt)
         {
+            // Store data for WinPanel to read in Show()
+            LastCompletedEvent = evt;
             PlayerProgressData.SaveLevelProgress(evt.LevelIndex, evt.Stars, evt.MoveCount);
+
+            // Hide gameplay HUD, then show Win
+            HidePanel("GameplayUI");
             _stateManager.ChangeState(GameStateType.Win);
         }
 
         private void OnLevelFailed(LevelFailedEvent evt)
         {
             _levelManager.StopAllBullets();
+
+            // Hide gameplay HUD, then show Fail
+            HidePanel("GameplayUI");
             _stateManager.ChangeState(GameStateType.Fail);
         }
 
@@ -162,6 +153,26 @@ namespace BulletRoute.Core
         private void OnTimerExpired(TimerExpiredEvent evt)
         {
             EventBus.Publish(new LevelFailedEvent { LevelIndex = evt.LevelIndex });
+        }
+
+        // ==================== HELPERS ====================
+
+        private void ShowPanel(string name)
+        {
+            var uiManager = ServiceLocator.Get<UIManager>();
+            uiManager?.ShowPanel(name);
+        }
+
+        private void HidePanel(string name)
+        {
+            var uiManager = ServiceLocator.Get<UIManager>();
+            uiManager?.HidePanel(name);
+        }
+
+        private void ForceHideAllPanels()
+        {
+            var uiManager = ServiceLocator.Get<UIManager>();
+            uiManager?.ForceHideAll();
         }
 
         // ==================== CLEANUP ====================

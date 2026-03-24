@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: Level_07
   m_EditorClassIdentifier: 
   LevelIndex: 6
-  LevelName: Mixed Signals
+  LevelName: Portal Jump
   WorldIndex: 0
   GridWidth: 6
-  GridHeight: 6
-  TimeLimit: 60
-  ThreeStarTime: 35
-  TwoStarTime: 15
+  GridHeight: 5
+  TimeLimit: 75
+  ThreeStarTime: 50
+  TwoStarTime: 25
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8

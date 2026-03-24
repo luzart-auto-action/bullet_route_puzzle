@@ -7,7 +7,12 @@ using BulletRoute.Data;
 
 namespace BulletRoute.UI
 {
-    public class GameplayUI : MonoBehaviour
+    /// <summary>
+    /// Gameplay HUD — extends UIPanel so it's managed by UIManager like every other panel.
+    /// Starts inactive. GameManager calls ShowPanel("GameplayUI") when entering gameplay.
+    /// All subscriptions in OnEnable/OnDisable: panel active = subscribed, inactive = silent.
+    /// </summary>
+    public class GameplayUI : UIPanel
     {
         [Header("Buttons")]
         [SerializeField] private Button _fireButton;
@@ -22,41 +27,32 @@ namespace BulletRoute.UI
         [SerializeField] private TextMeshProUGUI _timerText;
         [SerializeField] private Transform[] _starSlots;
 
-        [Header("Animation")]
+        [Header("Button Animation")]
         [SerializeField] private float _buttonPunchScale = 0.2f;
         [SerializeField] private float _buttonPunchDuration = 0.2f;
         [SerializeField] private float _counterPunchScale = 0.3f;
 
-        private CanvasGroup _canvasGroup;
+        [Header("HUD Fade")]
+        [SerializeField] private float _hudFadeDuration = 0.25f;
+
+        private CanvasGroup _cg;
         private Tween _timerWarningTween;
-        private bool _subscribedButtons;
+        private Tween _hudFadeTween;
 
-        private void Awake()
+        // ════════════════════════════════════════
+        //  LIFECYCLE — subscribe only while active
+        // ════════════════════════════════════════
+
+        private void OnEnable()
         {
-            _canvasGroup = GetComponent<CanvasGroup>();
-            if (_canvasGroup == null)
-                _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+            _cg = GetComponent<CanvasGroup>();
+            if (_cg == null) _cg = gameObject.AddComponent<CanvasGroup>();
 
-            // Subscribe events in Awake (NOT OnEnable) so they persist
-            // even when UI is hidden via CanvasGroup
             EventBus.Subscribe<LevelStartedEvent>(OnLevelStarted);
             EventBus.Subscribe<PlayerMoveEvent>(OnPlayerMove);
             EventBus.Subscribe<GameStateChangedEvent>(OnGameStateChanged);
             EventBus.Subscribe<TimerTickEvent>(OnTimerTick);
 
-            // Start hidden (game begins at MainMenu)
-            HideUI();
-        }
-
-        private void Start()
-        {
-            BindButtons();
-        }
-
-        private void BindButtons()
-        {
-            if (_subscribedButtons) return;
-            _subscribedButtons = true;
             _fireButton?.onClick.AddListener(OnFireClicked);
             _resetButton?.onClick.AddListener(OnResetClicked);
             _undoButton?.onClick.AddListener(OnUndoClicked);
@@ -64,38 +60,64 @@ namespace BulletRoute.UI
             _hintButton?.onClick.AddListener(OnHintClicked);
         }
 
-        private void OnFireClicked()
+        private void OnDisable()
         {
-            AnimateButton(_fireButton.transform);
-            EventBus.Publish(new PlayButtonPressedEvent());
+            EventBus.Unsubscribe<LevelStartedEvent>(OnLevelStarted);
+            EventBus.Unsubscribe<PlayerMoveEvent>(OnPlayerMove);
+            EventBus.Unsubscribe<GameStateChangedEvent>(OnGameStateChanged);
+            EventBus.Unsubscribe<TimerTickEvent>(OnTimerTick);
+
+            _fireButton?.onClick.RemoveListener(OnFireClicked);
+            _resetButton?.onClick.RemoveListener(OnResetClicked);
+            _undoButton?.onClick.RemoveListener(OnUndoClicked);
+            _pauseButton?.onClick.RemoveListener(OnPauseClicked);
+            _hintButton?.onClick.RemoveListener(OnHintClicked);
+
+            _timerWarningTween?.Kill();
+            _timerWarningTween = null;
+            _hudFadeTween?.Kill();
         }
 
-        private void OnResetClicked()
+        // ════════════════════════════════════════
+        //  SHOW / HIDE — HUD style: fade only, no popup scale
+        // ════════════════════════════════════════
+
+        public override void Show()
         {
-            AnimateButton(_resetButton.transform);
-            EventBus.Publish(new ResetButtonPressedEvent());
+            _hudFadeTween?.Kill();
+            gameObject.SetActive(true);
+
+            if (_cg == null) _cg = GetComponent<CanvasGroup>();
+            if (_cg == null) _cg = gameObject.AddComponent<CanvasGroup>();
+
+            _cg.alpha = 0f;
+            _cg.interactable = true;
+            _cg.blocksRaycasts = true;
+            transform.localScale = Vector3.one;
+
+            _hudFadeTween = _cg.DOFade(1f, _hudFadeDuration)
+                .SetEase(Ease.OutQuad)
+                .SetUpdate(true);
         }
 
-        private void OnUndoClicked()
+        public override void Hide()
         {
-            AnimateButton(_undoButton.transform);
-            var levelManager = ServiceLocator.Get<Level.LevelManager>();
-            levelManager?.CommandManager.Undo();
+            if (!gameObject.activeSelf) return;
+            _hudFadeTween?.Kill();
+            if (_cg == null) return;
+
+            _cg.interactable = false;
+            _cg.blocksRaycasts = false;
+
+            _hudFadeTween = _cg.DOFade(0f, _hudFadeDuration)
+                .SetEase(Ease.InQuad)
+                .SetUpdate(true)
+                .OnComplete(() => gameObject.SetActive(false));
         }
 
-        private void OnPauseClicked()
-        {
-            AnimateButton(_pauseButton.transform);
-            var stateManager = ServiceLocator.Get<GameState.GameStateManager>();
-            stateManager?.ChangeState(GameStateType.Paused);
-            EventBus.Publish(new ShowPanelEvent { PanelName = "PopupPause" });
-        }
-
-        private void OnHintClicked()
-        {
-            AnimateButton(_hintButton.transform);
-            EventBus.Publish(new HintRequestedEvent());
-        }
+        // ════════════════════════════════════════
+        //  EVENT HANDLERS
+        // ════════════════════════════════════════
 
         private void OnLevelStarted(LevelStartedEvent evt)
         {
@@ -107,11 +129,12 @@ namespace BulletRoute.UI
             }
             UpdateMoveCount(0);
 
-            // Reset timer display
             if (_timerText != null)
             {
                 _timerText.color = Color.white;
+                _timerText.transform.localScale = Vector3.one;
                 _timerWarningTween?.Kill();
+                _timerWarningTween = null;
             }
         }
 
@@ -123,52 +146,31 @@ namespace BulletRoute.UI
             int seconds = Mathf.FloorToInt(evt.TimeRemaining % 60f);
             _timerText.text = $"{minutes:00}:{seconds:00}";
 
-            // Warning flash
-            var config = ServiceLocator.Get<GameConfig>();
-            float threshold = config != null ? config.TimerWarningThreshold : 10f;
-
-            if (evt.TimeRemaining <= threshold && _timerWarningTween == null)
+            if (ServiceLocator.TryGet<GameConfig>(out var config))
             {
-                Color warningColor = config != null ? config.TimerWarningColor : Color.red;
-                _timerText.color = warningColor;
-                _timerWarningTween = _timerText.transform
-                    .DOScale(1.15f, 0.5f)
-                    .SetEase(Ease.InOutSine)
-                    .SetLoops(-1, LoopType.Yoyo);
+                float threshold = config.TimerWarningThreshold;
+                if (evt.TimeRemaining <= threshold && _timerWarningTween == null)
+                {
+                    _timerText.color = config.TimerWarningColor;
+                    _timerWarningTween = _timerText.transform
+                        .DOScale(1.15f, 0.5f)
+                        .SetEase(Ease.InOutSine)
+                        .SetLoops(-1, LoopType.Yoyo);
+                }
             }
         }
 
         private void OnPlayerMove(PlayerMoveEvent evt)
         {
-            var levelManager = ServiceLocator.Get<Level.LevelManager>();
-            if (levelManager != null)
-                UpdateMoveCount(levelManager.MoveCount);
+            var lm = ServiceLocator.Get<Level.LevelManager>();
+            if (lm != null) UpdateMoveCount(lm.MoveCount);
         }
 
+        /// <summary>
+        /// Only toggles button interactability. Show/Hide is orchestrated by GameManager.
+        /// </summary>
         private void OnGameStateChanged(GameStateChangedEvent evt)
         {
-            // Hide during MainMenu, Win, Fail
-            if (evt.NewState == GameStateType.MainMenu ||
-                evt.NewState == GameStateType.Win ||
-                evt.NewState == GameStateType.Fail)
-            {
-                HideUI();
-                // Also disable all buttons
-                if (_fireButton != null) _fireButton.interactable = false;
-                if (_resetButton != null) _resetButton.interactable = false;
-                if (_undoButton != null) _undoButton.interactable = false;
-                if (_hintButton != null) _hintButton.interactable = false;
-                return;
-            }
-
-            // Show during gameplay states
-            if (evt.NewState == GameStateType.Setup ||
-                evt.NewState == GameStateType.Simulating ||
-                evt.NewState == GameStateType.Loading)
-            {
-                ShowUI();
-            }
-
             bool isSetup = evt.NewState == GameStateType.Setup;
             if (_fireButton != null) _fireButton.interactable = isSetup;
             if (_resetButton != null) _resetButton.interactable = isSetup;
@@ -176,29 +178,46 @@ namespace BulletRoute.UI
             if (_hintButton != null) _hintButton.interactable = isSetup;
         }
 
+        // ════════════════════════════════════════
+        //  BUTTON HANDLERS
+        // ════════════════════════════════════════
+
+        private void OnFireClicked()
+        {
+            AnimateButton(_fireButton.transform);
+            EventBus.Publish(new PlayButtonPressedEvent());
+        }
+        private void OnResetClicked()
+        {
+            AnimateButton(_resetButton.transform);
+            EventBus.Publish(new ResetButtonPressedEvent());
+        }
+        private void OnUndoClicked()
+        {
+            AnimateButton(_undoButton.transform);
+            ServiceLocator.Get<Level.LevelManager>()?.CommandManager.Undo();
+        }
+        private void OnPauseClicked()
+        {
+            AnimateButton(_pauseButton.transform);
+            ServiceLocator.Get<GameState.GameStateManager>()?.ChangeState(GameStateType.Paused);
+            EventBus.Publish(new ShowPanelEvent { PanelName = "PopupPause" });
+        }
+        private void OnHintClicked()
+        {
+            AnimateButton(_hintButton.transform);
+            EventBus.Publish(new HintRequestedEvent());
+        }
+
+        // ════════════════════════════════════════
+        //  HELPERS
+        // ════════════════════════════════════════
+
         private void UpdateMoveCount(int count)
         {
-            if (_moveCountText != null)
-            {
-                _moveCountText.text = count.ToString();
-                _moveCountText.transform.DOPunchScale(Vector3.one * _counterPunchScale, 0.2f, 1, 0.5f);
-            }
-        }
-
-        private void ShowUI()
-        {
-            if (_canvasGroup == null) return;
-            _canvasGroup.alpha = 1f;
-            _canvasGroup.interactable = true;
-            _canvasGroup.blocksRaycasts = true;
-        }
-
-        private void HideUI()
-        {
-            if (_canvasGroup == null) return;
-            _canvasGroup.alpha = 0f;
-            _canvasGroup.interactable = false;
-            _canvasGroup.blocksRaycasts = false;
+            if (_moveCountText == null) return;
+            _moveCountText.text = count.ToString();
+            _moveCountText.transform.DOPunchScale(Vector3.one * _counterPunchScale, 0.2f, 1, 0.5f);
         }
 
         private void AnimateButton(Transform btn)
@@ -207,15 +226,6 @@ namespace BulletRoute.UI
             btn.localScale = Vector3.one;
             btn.DOPunchScale(Vector3.one * _buttonPunchScale, _buttonPunchDuration, 2, 0.5f);
             EventBus.Publish(new PlaySFXEvent { ClipName = "ButtonClick" });
-        }
-
-        private void OnDestroy()
-        {
-            EventBus.Unsubscribe<LevelStartedEvent>(OnLevelStarted);
-            EventBus.Unsubscribe<PlayerMoveEvent>(OnPlayerMove);
-            EventBus.Unsubscribe<GameStateChangedEvent>(OnGameStateChanged);
-            EventBus.Unsubscribe<TimerTickEvent>(OnTimerTick);
-            _timerWarningTween?.Kill();
         }
     }
 }

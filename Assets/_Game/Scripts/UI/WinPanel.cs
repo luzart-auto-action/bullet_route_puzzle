@@ -5,6 +5,10 @@ using BulletRoute.Core;
 
 namespace BulletRoute.UI
 {
+    /// <summary>
+    /// Win screen. No Awake subscriptions — GameManager stores completion data,
+    /// WinPanel reads it in Show(). Fully managed by UIPanel lifecycle.
+    /// </summary>
     public class WinPanel : UIPanel
     {
         [Header("Win Panel")]
@@ -21,17 +25,6 @@ namespace BulletRoute.UI
         [SerializeField] private float _starScaleDuration = 0.4f;
         [SerializeField] private Ease _starEase = Ease.OutBack;
 
-        // Store last event data so we can display it when panel shows
-        private LevelCompletedEvent _lastCompletedEvent;
-        private bool _hasData;
-
-        private void Awake()
-        {
-            // Subscribe in Awake so we always receive the event,
-            // even when gameObject is inactive
-            EventBus.Subscribe<LevelCompletedEvent>(OnLevelCompleted);
-        }
-
         private void OnEnable()
         {
             _nextButton?.onClick.AddListener(OnNextClicked);
@@ -46,27 +39,15 @@ namespace BulletRoute.UI
             _homeButton?.onClick.RemoveListener(OnHomeClicked);
         }
 
-        private void OnDestroy()
-        {
-            EventBus.Unsubscribe<LevelCompletedEvent>(OnLevelCompleted);
-        }
-
-        private void OnLevelCompleted(LevelCompletedEvent evt)
-        {
-            // Store data - panel might not be visible yet
-            _lastCompletedEvent = evt;
-            _hasData = true;
-        }
-
         public override void Show()
         {
             base.Show();
 
-            // Display stored data
-            if (_hasData)
+            // Read completion data from GameManager (the orchestrator holds the state)
+            var gm = ServiceLocator.Get<GameManager>();
+            if (gm != null && gm.LastCompletedEvent.Stars > 0)
             {
-                DisplayResults(_lastCompletedEvent);
-                _hasData = false;
+                DisplayResults(gm.LastCompletedEvent);
             }
 
             EventBus.Publish(new PlaySFXEvent { ClipName = "LevelComplete" });
@@ -101,9 +82,8 @@ namespace BulletRoute.UI
             for (int i = 0; i < _stars.Length; i++)
             {
                 _stars[i].localScale = Vector3.zero;
-                bool earned = i < count;
 
-                if (earned)
+                if (i < count)
                 {
                     int index = i;
                     DOVirtual.DelayedCall(_starDelay * (i + 1), () =>
@@ -124,9 +104,7 @@ namespace BulletRoute.UI
 
         private void OnNextClicked()
         {
-            // State transition (Win -> Loading) will hide this panel via WinState.Exit()
-            var gm = ServiceLocator.Get<GameManager>();
-            gm?.NextLevel();
+            ServiceLocator.Get<GameManager>()?.NextLevel();
         }
 
         private void OnRetryClicked()
@@ -134,9 +112,7 @@ namespace BulletRoute.UI
             var gm = ServiceLocator.Get<GameManager>();
             var lm = ServiceLocator.Get<Level.LevelManager>();
             if (gm != null && lm != null)
-            {
                 gm.LoadLevel(lm.CurrentLevelIndex);
-            }
         }
 
         private void OnHomeClicked()

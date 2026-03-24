@@ -16,7 +16,7 @@ namespace BulletRoute.Bullet
         [SerializeField] private Transform _fxTrail;
 
         [Header("Animation")]
-        [SerializeField] private float _moveSpeed = 0.5f; // seconds per tile
+        [SerializeField] private float _moveSpeed = 0.5f;
         [SerializeField] private Ease _moveEase = Ease.InOutQuad;
         [SerializeField] private float _spawnScaleTime = 0.2f;
         [SerializeField] private float _despawnScaleTime = 0.15f;
@@ -24,87 +24,75 @@ namespace BulletRoute.Bullet
         [SerializeField] private float _pulseDuration = 0.3f;
         [SerializeField] private float _rotationSmooth = 0.3f;
 
-        private Tween _moveTween;
-        private Tween _pulseTween;
-        private Tween _rotationTween;
-        private Sequence _spawnSequence;
         private bool _isActive;
 
         public float MoveSpeed => _moveSpeed;
         public bool IsActive => _isActive;
-        public Transform FXFront => _fxFront;
-        public Transform FXCenter => _fxCenter;
+
+        // ════════════════════════════════════════
+        //  INIT
+        // ════════════════════════════════════════
 
         public void Initialize(Vector3 startPos, Direction startDir)
         {
+            DOTween.Kill(transform); // kill everything from previous use
             transform.position = startPos;
-            SetDirection(startDir, false);
-
+            transform.eulerAngles = new Vector3(0, DirectionHelper.ToAngle(startDir), 0);
+            if (_visualRoot != null) _visualRoot.localPosition = Vector3.zero;
             if (_trail != null) _trail.Clear();
 
             _isActive = true;
             AnimateSpawn();
-            StartPulse();
         }
 
         private void AnimateSpawn()
         {
             if (_visualRoot == null) return;
-            _spawnSequence?.Kill();
             _visualRoot.localScale = Vector3.zero;
-            _spawnSequence = DOTween.Sequence()
+            DOTween.Sequence()
+                .SetTarget(transform)
                 .Append(_visualRoot.DOScale(Vector3.one * 1.2f, _spawnScaleTime * 0.6f).SetEase(Ease.OutBack))
-                .Append(_visualRoot.DOScale(Vector3.one, _spawnScaleTime * 0.4f).SetEase(Ease.InOutQuad));
+                .Append(_visualRoot.DOScale(Vector3.one, _spawnScaleTime * 0.4f).SetEase(Ease.InOutQuad))
+                .Append(_visualRoot.DOScale(Vector3.one * (1f + _pulseScale), _pulseDuration)
+                    .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo));
         }
 
-        private void StartPulse()
+        // ════════════════════════════════════════
+        //  MOVEMENT — pure position tween, no side effects
+        // ════════════════════════════════════════
+
+        /// <summary>
+        /// Returns a DOMove tween. Does NOT change direction.
+        /// Direction must be set separately via SetDirection callback in the sequence.
+        /// </summary>
+        public Tween MoveTo(Vector3 targetPos)
         {
-            _pulseTween?.Kill();
-            if (_visualRoot == null) return;
-            _pulseTween = _visualRoot.DOScale(Vector3.one * (1f + _pulseScale), _pulseDuration)
-                .SetEase(Ease.InOutSine)
-                .SetLoops(-1, LoopType.Yoyo);
+            return transform.DOMove(targetPos, _moveSpeed).SetEase(_moveEase);
         }
 
-        public Tween MoveTo(Vector3 targetPos, Direction dir)
-        {
-            _moveTween?.Kill();
-
-            SetDirection(dir, true);
-
-            _moveTween = transform.DOMove(targetPos, _moveSpeed)
-                .SetEase(_moveEase);
-
-            return _moveTween;
-        }
-
-        public void SetDirection(Direction dir, bool animate)
+        /// <summary>
+        /// Rotate bullet to face direction. Call from AppendCallback in the sequence
+        /// so it fires at the right time, not during BUILD phase.
+        /// </summary>
+        public void SetDirection(Direction dir)
         {
             float angle = DirectionHelper.ToAngle(dir);
-            Vector3 targetRot = new Vector3(0, angle, 0);
-
-            if (animate)
-            {
-                _rotationTween?.Kill();
-                _rotationTween = transform.DORotate(targetRot, _rotationSmooth).SetEase(Ease.OutQuad);
-            }
-            else
-            {
-                transform.eulerAngles = targetRot;
-            }
+            transform.DORotate(new Vector3(0, angle, 0), _rotationSmooth)
+                .SetTarget(transform)
+                .SetEase(Ease.OutQuad);
         }
+
+        // ════════════════════════════════════════
+        //  END ANIMATIONS
+        // ════════════════════════════════════════
 
         public void AnimateHitTarget()
         {
-            _pulseTween?.Kill();
-            _moveTween?.Kill();
-
-            // Mark inactive IMMEDIATELY
             _isActive = false;
-
             if (_visualRoot == null) return;
 
             DOTween.Sequence()
+                .SetTarget(transform)
                 .Append(_visualRoot.DOScale(Vector3.one * 1.5f, 0.15f).SetEase(Ease.OutQuad))
                 .Append(_visualRoot.DOScale(Vector3.zero, 0.2f).SetEase(Ease.InBack))
                 .OnComplete(() =>
@@ -120,15 +108,11 @@ namespace BulletRoute.Bullet
 
         public void AnimateStop()
         {
-            _pulseTween?.Kill();
-            _moveTween?.Kill();
-
-            // Mark inactive IMMEDIATELY so BulletSimulator can detect all bullets are done
             _isActive = false;
-
             if (_visualRoot == null) return;
 
             DOTween.Sequence()
+                .SetTarget(transform)
                 .Append(_visualRoot.DOShakePosition(0.3f, 0.1f, 10, 90f))
                 .Append(_visualRoot.DOScale(Vector3.zero, _despawnScaleTime).SetEase(Ease.InBack))
                 .OnComplete(() =>
@@ -144,10 +128,10 @@ namespace BulletRoute.Bullet
 
         public void AnimateTeleport(Vector3 toPos, System.Action onComplete)
         {
-            _moveTween?.Kill();
             if (_visualRoot == null) return;
 
             DOTween.Sequence()
+                .SetTarget(transform)
                 .Append(_visualRoot.DOScale(Vector3.zero, 0.15f).SetEase(Ease.InBack))
                 .AppendCallback(() =>
                 {
@@ -158,29 +142,18 @@ namespace BulletRoute.Bullet
                 .OnComplete(() => onComplete?.Invoke());
         }
 
+        // ════════════════════════════════════════
+        //  CLEANUP — single point: DOTween.Kill(transform)
+        // ════════════════════════════════════════
+
         public void Deactivate()
         {
             _isActive = false;
-            KillAllTweens();
+            DOTween.Kill(transform);
             if (_trail != null) _trail.Clear();
         }
 
-        private void KillAllTweens()
-        {
-            _moveTween?.Kill();
-            _pulseTween?.Kill();
-            _rotationTween?.Kill();
-            _spawnSequence?.Kill();
-        }
-
-        private void OnDisable()
-        {
-            KillAllTweens();
-        }
-
-        private void OnDestroy()
-        {
-            KillAllTweens();
-        }
+        private void OnDisable() => DOTween.Kill(transform);
+        private void OnDestroy() => DOTween.Kill(transform);
     }
 }

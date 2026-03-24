@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level_01
   m_EditorClassIdentifier: 
   LevelIndex: 0
-  LevelName: First Shot
+  LevelName: First Steps
   WorldIndex: 0
   GridWidth: 5
   GridHeight: 5

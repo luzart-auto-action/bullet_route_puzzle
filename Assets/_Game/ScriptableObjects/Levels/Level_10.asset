@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: Level_10
   m_EditorClassIdentifier: 
   LevelIndex: 9
-  LevelName: Grand Finale
+  LevelName: Bomb Squad
   WorldIndex: 0
-  GridWidth: 7
-  GridHeight: 7
-  TimeLimit: 45
-  ThreeStarTime: 25
-  TwoStarTime: 10
+  GridWidth: 6
+  GridHeight: 6
+  TimeLimit: 70
+  ThreeStarTime: 45
+  TwoStarTime: 20
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8

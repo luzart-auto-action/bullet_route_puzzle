@@ -129,7 +129,7 @@ namespace BulletRoute.Tile
             else
             {
                 var target = _visualRoot != null ? _visualRoot : transform;
-                target.localRotation = Quaternion.Euler(0f, _rotationState * -90f, 0f);
+                target.localRotation = Quaternion.Euler(0f, _rotationState * 90f, 0f);
             }
         }
 
@@ -138,7 +138,7 @@ namespace BulletRoute.Tile
             _currentRotateTween?.Kill();
 
             var target = _visualRoot != null ? _visualRoot : transform;
-            float targetAngle = _rotationState * -90f;
+            float targetAngle = _rotationState * 90f;
 
             // Punch scale for juice
             _currentRotateTween = DOTween.Sequence()

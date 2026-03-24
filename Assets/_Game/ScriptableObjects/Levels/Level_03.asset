@@ -17,8 +17,8 @@ MonoBehaviour:
   WorldIndex: 0
   GridWidth: 5
   GridHeight: 5
-  TimeLimit: 80
-  ThreeStarTime: 55
+  TimeLimit: 85
+  ThreeStarTime: 60
   TwoStarTime: 30
   ThreeStar: 3
   TwoStar: 5
