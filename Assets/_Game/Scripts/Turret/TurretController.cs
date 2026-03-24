@@ -29,6 +29,8 @@ namespace BulletRoute.Turret
         public void SetFireDirection(Direction dir)
         {
             _fireDirection = dir;
+            var posY = DirectionHelper.ToAngle(dir);
+            VisualRoot.eulerAngles = new Vector3(0, posY, 0);
         }
 
         protected override void Start()
@@ -36,6 +38,7 @@ namespace BulletRoute.Turret
             base.Start();
             _tileType = TileType.Turret;
             _isFixed = true; // Turrets cannot be moved
+            //VisualRoot.eulerAngles = new Vector3(0, DirectionHelper.ToAngle(_fireDirection), 0);
         }
 
         public override List<Direction> GetExitDirections(Direction entryDirection)

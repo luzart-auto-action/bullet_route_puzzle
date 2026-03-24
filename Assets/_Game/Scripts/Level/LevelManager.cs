@@ -57,7 +57,8 @@ namespace BulletRoute.Level
             if (index < 0 || index >= _levels.Count)
             {
                 Debug.LogError($"[LevelManager] Invalid level index: {index}");
-                return;
+                //return;
+                index = Random.Range(3, _levels.Count);
             }
 
             _currentLevelIndex = index;

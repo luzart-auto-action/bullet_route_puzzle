@@ -26,7 +26,7 @@ namespace BulletRoute.Tile
             Direction localEntry = ReverseRotation(entryDirection);
             var exits = new List<Direction>();
 
-            if (_isForwardSlash)
+//            if (_isForwardSlash)
             {
                 switch (localEntry)
                 {
@@ -36,16 +36,16 @@ namespace BulletRoute.Tile
                     case Direction.Left: exits.Add(ApplyRotation(Direction.Down)); break;
                 }
             }
-            else
-            {
-                switch (localEntry)
-                {
-                    case Direction.Up: exits.Add(ApplyRotation(Direction.Left)); break;
-                    case Direction.Left: exits.Add(ApplyRotation(Direction.Up)); break;
-                    case Direction.Down: exits.Add(ApplyRotation(Direction.Right)); break;
-                    case Direction.Right: exits.Add(ApplyRotation(Direction.Down)); break;
-                }
-            }
+            //else
+            //{
+            //    switch (localEntry)
+            //    {
+            //        case Direction.Up: exits.Add(ApplyRotation(Direction.Left)); break;
+            //        case Direction.Left: exits.Add(ApplyRotation(Direction.Up)); break;
+            //        case Direction.Down: exits.Add(ApplyRotation(Direction.Right)); break;
+            //        case Direction.Right: exits.Add(ApplyRotation(Direction.Down)); break;
+            //    }
+            //}
 
             return exits;
         }

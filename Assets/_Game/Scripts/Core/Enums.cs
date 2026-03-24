@@ -92,7 +92,7 @@ namespace BulletRoute.Core
         /// </summary>
         public static float ToAngle(Direction dir)
         {
-            return (int)dir * -90f;
+            return (int)dir * 90f;
         }
     }
 }

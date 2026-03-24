@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
 using BulletRoute.Core;
@@ -373,31 +373,46 @@ namespace BulletRoute.Bullet
                 });
             }
         }
-
+        private Tween cacheTween;
         private void OnBulletStopped(Vector2Int pos, BulletStopReason reason)
         {
             EventBus.Publish(new BulletStoppedEvent { LastPos = pos, Reason = reason });
 
-            // Check if all bullets are done
+            // Nếu còn target, chuyển về Setup ngay khi có bóng bị dừng
+            if (_targetsRemaining > 0)
+            {
+                _isSimulating = false;
+                cacheTween.Kill(true);
+                cacheTween = DOVirtual.DelayedCall(0.3f, () =>
+                {
+                    var bulletManager = ServiceLocator.Get<BulletManager>();
+                    bulletManager?.ReturnAllBullets();
+                    _activeBullets.Clear();
+
+                    var stateManager = ServiceLocator.Get<GameStateManager>();
+                    if (stateManager != null && stateManager.CurrentStateType == GameStateType.Simulating)
+                    {
+                        stateManager.ChangeState(GameStateType.Setup);
+                    }
+                });
+                return;
+            }
+
+            // Check if all bullets are done (trường hợp không còn target)
             bool allDone = true;
             foreach (var b in _activeBullets)
                 if (b.IsActive) { allDone = false; break; }
 
             if (allDone && _targetsRemaining > 0)
             {
-                // All bullets stopped but targets remain.
-                // Don't fail immediately - let player fire again.
-                // Just return to Setup state so they can adjust and re-fire.
                 _isSimulating = false;
-                DOVirtual.DelayedCall(0.3f, () =>
+                cacheTween.Kill(true);
+                cacheTween = DOVirtual.DelayedCall(0.3f, () =>
                 {
-                    // Return bullets to pool
                     var bulletManager = ServiceLocator.Get<BulletManager>();
                     bulletManager?.ReturnAllBullets();
                     _activeBullets.Clear();
 
-                    // Back to Setup so player can adjust tiles and fire again
-                    // Timer keeps running - no restart
                     var stateManager = ServiceLocator.Get<GameStateManager>();
                     if (stateManager != null && stateManager.CurrentStateType == GameStateType.Simulating)
                     {
@@ -416,6 +431,7 @@ namespace BulletRoute.Bullet
                     bullet.Deactivate();
             }
             _activeBullets.Clear();
+            cacheTween.Kill(true);
             DOTween.Kill(this);
         }
     }

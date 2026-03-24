@@ -101,7 +101,8 @@ namespace BulletRoute.UI
         {
             if (_levelText != null)
             {
-                _levelText.text = $"Level {evt.LevelIndex + 1}";
+                int level = PlayerProgressData.GetCurrentLevel() + 1;
+                _levelText.text = $"Level {level}";
                 _levelText.transform.DOPunchScale(Vector3.one * 0.2f, 0.3f, 2, 0.5f);
             }
             UpdateMoveCount(0);
