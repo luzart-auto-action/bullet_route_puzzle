@@ -142,7 +142,10 @@ namespace BulletRoute.Editor
             // LevelTimer
             var timer = FindOrCreate<LevelTimer>("[LevelTimer]");
 
-            Debug.Log("[BulletRoute] Managers created: 11 systems");
+            // Tutorial
+            var tutorial = FindOrCreate<TutorialManager>("[TutorialManager]");
+
+            Debug.Log("[BulletRoute] Managers created: 12 systems");
         }
 
         // ===================== CAMERA =====================

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using System.Collections.Generic;
 using BulletRoute.Core;
 using BulletRoute.Level;
@@ -21,16 +22,22 @@ namespace BulletRoute.Editor
             string folder = "Assets/_Game/ScriptableObjects/Levels";
             EnsureFolder(folder);
             var levels = new List<LevelData>();
-            for (int i = 0; i < 30; i++) levels.Add(Build(folder, i));
-            AssetDatabase.SaveAssets(); AssetDatabase.Refresh();
+            for (int i = 0; i < 30; i++) 
+                levels.Add(Build(folder, i));
+            AssetDatabase.SaveAssets(); 
+            AssetDatabase.Refresh();
             var lm = Object.FindObjectOfType<LevelManager>();
             if (lm != null) {
                 var so = new SerializedObject(lm); var prop = so.FindProperty("_levels");
                 prop.ClearArray();
                 for (int i = 0; i < levels.Count; i++) { prop.InsertArrayElementAtIndex(i); prop.GetArrayElementAtIndex(i).objectReferenceValue = levels[i]; }
-                so.ApplyModifiedPropertiesWithoutUndo();
+                so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(lm);
+                EditorSceneManager.MarkSceneDirty(lm.gameObject.scene);
             }
-            EditorUtility.DisplayDialog("Done", $"{levels.Count} levels created & assigned.", "OK");
+            AssetDatabase.SaveAssets();
+            EditorUtility.DisplayDialog("Done",
+                $"{levels.Count} levels created & assigned.\n\nScene marked dirty — press Ctrl+S to save!", "OK");
         }
 
         static LevelData Build(string f, int i) {

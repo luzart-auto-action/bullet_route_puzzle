@@ -5032,6 +5032,55 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &921113462
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 921113464}
+  - component: {fileID: 921113463}
+  m_Layer: 0
+  m_Name: '[TutorialManager]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &921113463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 921113462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1ad99ff5f5a2a7468d689aa5c1548ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _typingSpeed: 0.03
+  _overlayColor: {r: 0, g: 0, b: 0, a: 0.7}
+  _highlightColor: {r: 1, g: 0.9, b: 0.2, a: 1}
+  _textColor: {r: 1, g: 1, b: 1, a: 1}
+  _instructionBgColor: {r: 0.1, g: 0.1, b: 0.2, a: 0.9}
+--- !u!4 &921113464
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 921113462}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 17
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &921578196
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6349,8 +6398,17 @@ MonoBehaviour:
   _hideEase: 26
   _playButton: {fileID: 1608731682}
   _settingsButton: {fileID: 1187668738}
-  _levelText: {fileID: 2021644672}
   _titleText: {fileID: 1832417044}
+  _playButtonText: {fileID: 0}
+  _levelGridContainer: {fileID: 0}
+  _levelScrollRect: {fileID: 0}
+  _totalLevels: 30
+  _unlockedColor: {r: 0.2, g: 0.6, b: 1, a: 1}
+  _completedColor: {r: 0.2, g: 0.8, b: 0.4, a: 1}
+  _lockedColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.6}
+  _selectedColor: {r: 1, g: 0.8, b: 0.2, a: 1}
+  _starActiveColor: {r: 1, g: 0.85, b: 0, a: 1}
+  _starInactiveColor: {r: 0.4, g: 0.4, b: 0.4, a: 0.5}
 --- !u!1 &1209604699
 GameObject:
   m_ObjectHideFlags: 0
@@ -6464,7 +6522,7 @@ RectTransform:
   - {fileID: 243451162}
   - {fileID: 1873487792}
   m_Father: {fileID: 1626497683}
-  m_RootOrder: 6
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -6825,12 +6883,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _panels:
+  - {fileID: 127537258}
+  - {fileID: 1017488275}
+  - {fileID: 1209160837}
   - {fileID: 1213756086}
   - {fileID: 1368698353}
-  - {fileID: 1017488275}
   - {fileID: 1528202252}
-  - {fileID: 1209160837}
-  - {fileID: 127537258}
 --- !u!1 &1368698350
 GameObject:
   m_ObjectHideFlags: 0
@@ -6864,7 +6922,7 @@ RectTransform:
   - {fileID: 1823997754}
   - {fileID: 850274786}
   m_Father: {fileID: 1626497683}
-  m_RootOrder: 5
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -8984,8 +9042,8 @@ RectTransform:
   - {fileID: 127537257}
   - {fileID: 1528202250}
   - {fileID: 1017488273}
-  - {fileID: 1368698351}
   - {fileID: 1213756084}
+  - {fileID: 1368698351}
   m_Father: {fileID: 0}
   m_RootOrder: 15
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
