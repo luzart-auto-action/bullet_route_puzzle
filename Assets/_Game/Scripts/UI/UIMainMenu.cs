@@ -9,44 +9,33 @@ using BulletRoute.Data;
 namespace BulletRoute.UI
 {
     /// <summary>
-    /// Main menu with level selection grid. Each level shows star progress.
-    /// Levels are built dynamically in Show() from PlayerProgressData.
+    /// Vertical path level map. Spawns LevelNodeUI prefab for each level.
+    /// Edit the LevelNode prefab to customize the look — UIMainMenu only handles layout + data.
     /// </summary>
     public class UIMainMenu : UIPanel
     {
         [Header("Main Menu")]
         [SerializeField] private Button _playButton;
         [SerializeField] private Button _settingsButton;
-        [SerializeField] private TextMeshProUGUI _titleText;
         [SerializeField] private TextMeshProUGUI _playButtonText;
 
-        [Header("Level Grid")]
-        [SerializeField] private Transform _levelGridContainer;
-        [SerializeField] private ScrollRect _levelScrollRect;
+        [Header("Level Path")]
+        [SerializeField] private LevelNodeUI _levelNodePrefab;
+        [SerializeField] private Transform _levelPathContainer;
+        [SerializeField] private ScrollRect _scrollRect;
         [SerializeField] private int _totalLevels = 30;
 
-        [Header("Level Cell Colors")]
-        [SerializeField] private Color _unlockedColor = new Color(0.2f, 0.6f, 1f, 1f);
-        [SerializeField] private Color _completedColor = new Color(0.2f, 0.8f, 0.4f, 1f);
-        [SerializeField] private Color _lockedColor = new Color(0.3f, 0.3f, 0.3f, 0.6f);
-        [SerializeField] private Color _selectedColor = new Color(1f, 0.8f, 0.2f, 1f);
-        [SerializeField] private Color _starActiveColor = new Color(1f, 0.85f, 0f, 1f);
-        [SerializeField] private Color _starInactiveColor = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+        [Header("Path Layout")]
+        [SerializeField] private float _nodeSpacing = 140f;
+        [SerializeField] private float _zigzagOffset = 70f;
+        [SerializeField] private float _startY = 100f;
 
-        private List<LevelCellUI> _cells = new List<LevelCellUI>();
-        private int _selectedLevel;
-        private Tween _titlePulse;
+        [Header("Road")]
+        [SerializeField] private Color _roadColor = new Color(0.2f, 0.35f, 0.6f, 0.8f);
+        [SerializeField] private float _roadWidth = 12f;
 
-        private class LevelCellUI
-        {
-            public GameObject Root;
-            public Button Button;
-            public Image Background;
-            public TextMeshProUGUI NumberText;
-            public Image[] Stars = new Image[3];
-            public GameObject LockIcon;
-            public int LevelIndex;
-        }
+        private List<LevelNodeUI> _spawnedNodes = new List<LevelNodeUI>();
+        private int _currentLevel;
 
         // ════════════════════════════════════════
         //  LIFECYCLE
@@ -62,220 +51,162 @@ namespace BulletRoute.UI
         {
             _playButton?.onClick.RemoveListener(OnPlayClicked);
             _settingsButton?.onClick.RemoveListener(OnSettingsClicked);
-            _titlePulse?.Kill();
         }
 
         // ════════════════════════════════════════
-        //  SHOW / HIDE
+        //  SHOW
         // ════════════════════════════════════════
 
         public override void Show()
         {
             base.Show();
-
-            _selectedLevel = PlayerProgressData.GetCurrentLevel();
-            BuildLevelGrid();
+            _currentLevel = PlayerProgressData.GetCurrentLevel();
+            BuildPath();
             UpdatePlayButton();
 
-            // Title pulse
-            if (_titleText != null)
-            {
-                _titlePulse?.Kill();
-                _titlePulse = _titleText.transform
-                    .DOScale(1.05f, 1.2f)
-                    .SetEase(Ease.InOutSine)
-                    .SetLoops(-1, LoopType.Yoyo)
-                    .SetUpdate(true);
-            }
+            DOVirtual.DelayedCall(0.15f, ScrollToCurrentLevel).SetUpdate(true);
 
-            // Play button bounce in
             if (_playButton != null)
             {
                 _playButton.transform.localScale = Vector3.zero;
                 _playButton.transform.DOScale(1f, 0.5f)
-                    .SetEase(Ease.OutBack)
-                    .SetDelay(0.3f)
-                    .SetUpdate(true);
+                    .SetEase(Ease.OutBack).SetDelay(0.3f).SetUpdate(true);
             }
         }
 
-        public override void Hide()
-        {
-            _titlePulse?.Kill();
-            base.Hide();
-        }
-
         // ════════════════════════════════════════
-        //  LEVEL GRID
+        //  BUILD PATH — Instantiate prefabs + road
         // ════════════════════════════════════════
 
-        private void BuildLevelGrid()
+        private void BuildPath()
         {
-            if (_levelGridContainer == null) return;
+            if (_levelPathContainer == null || _levelNodePrefab == null) return;
 
-            // Clear old cells
-            foreach (var cell in _cells)
-                if (cell.Root != null) Destroy(cell.Root);
-            _cells.Clear();
+            // Clear old
+            foreach (var node in _spawnedNodes)
+                if (node != null) Destroy(node.gameObject);
+            _spawnedNodes.Clear();
 
-            int currentLevel = PlayerProgressData.GetCurrentLevel();
+            // Clear road segments
+            foreach (Transform child in _levelPathContainer)
+                Destroy(child.gameObject);
 
+            // Set content height
+            float totalHeight = _startY + _totalLevels * _nodeSpacing + 100f;
+            var contentRt = _levelPathContainer.GetComponent<RectTransform>();
+            if (contentRt != null)
+                contentRt.sizeDelta = new Vector2(contentRt.sizeDelta.x, totalHeight);
+
+            // Spawn nodes bottom to top
             for (int i = 0; i < _totalLevels; i++)
             {
-                var cell = CreateLevelCell(i, currentLevel);
-                _cells.Add(cell);
+                float yPos = _startY + i * _nodeSpacing;
+                float xPos = (i % 2 == 0) ? -_zigzagOffset : _zigzagOffset;
 
-                // Staggered appear animation
-                int index = i;
-                cell.Root.transform.localScale = Vector3.zero;
-                cell.Root.transform.DOScale(1f, 0.3f)
-                    .SetDelay(index * 0.03f)
-                    .SetEase(Ease.OutBack)
-                    .SetUpdate(true);
+                // Road segment
+                if (i > 0)
+                {
+                    float prevY = _startY + (i - 1) * _nodeSpacing;
+                    float prevX = ((i - 1) % 2 == 0) ? -_zigzagOffset : _zigzagOffset;
+                    SpawnRoad(prevX, prevY, xPos, yPos);
+                }
+
+                // Node
+                var node = SpawnNode(i, xPos, yPos);
+                _spawnedNodes.Add(node);
+
+                // Stagger animation
+                int idx = i;
+                node.transform.localScale = Vector3.zero;
+                node.transform.DOScale(1f, 0.25f)
+                    .SetDelay(idx * 0.02f).SetEase(Ease.OutBack).SetUpdate(true);
             }
-
-            HighlightSelected();
         }
 
-        private LevelCellUI CreateLevelCell(int levelIndex, int currentLevel)
+        private LevelNodeUI SpawnNode(int levelIndex, float xPos, float yPos)
         {
-            var cell = new LevelCellUI { LevelIndex = levelIndex };
+            var node = Instantiate(_levelNodePrefab, _levelPathContainer);
+            node.name = $"Level_{levelIndex + 1}";
+
+            var rt = node.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0);
+            rt.anchorMax = new Vector2(0.5f, 0);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(xPos, yPos);
+
+            // Get progress data and setup visual state
             var progress = PlayerProgressData.GetLevelProgress(levelIndex);
-            bool isUnlocked = levelIndex <= currentLevel;
+            bool isCurrent = levelIndex == _currentLevel;
             bool isCompleted = progress.IsCompleted;
+            bool isLocked = levelIndex > _currentLevel;
 
-            // Root
-            cell.Root = new GameObject($"LevelCell_{levelIndex + 1}");
-            cell.Root.transform.SetParent(_levelGridContainer, false);
-            var rt = cell.Root.AddComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(120, 140);
+            node.Setup(levelIndex, progress.BestStars, isCompleted, isCurrent, isLocked);
 
-            // Background
-            cell.Background = cell.Root.AddComponent<Image>();
-            cell.Background.color = isCompleted ? _completedColor : isUnlocked ? _unlockedColor : _lockedColor;
+            // Wire button — only current level plays
+            if (isCurrent)
+                node.Button.onClick.AddListener(OnPlayClicked);
 
-            // Round corners effect (slight transparency on edges)
-            cell.Background.type = Image.Type.Sliced;
-            cell.Background.pixelsPerUnitMultiplier = 2f;
-
-            // Button
-            cell.Button = cell.Root.AddComponent<Button>();
-            cell.Button.targetGraphic = cell.Background;
-            if (!isUnlocked) cell.Button.interactable = false;
-
-            int capturedIndex = levelIndex;
-            cell.Button.onClick.AddListener(() => OnLevelCellClicked(capturedIndex));
-
-            // Level number
-            var numberGo = new GameObject("Number");
-            numberGo.transform.SetParent(cell.Root.transform, false);
-            var numberRt = numberGo.AddComponent<RectTransform>();
-            numberRt.anchorMin = new Vector2(0, 0.4f);
-            numberRt.anchorMax = new Vector2(1, 1f);
-            numberRt.offsetMin = Vector2.zero;
-            numberRt.offsetMax = Vector2.zero;
-            cell.NumberText = numberGo.AddComponent<TextMeshProUGUI>();
-            cell.NumberText.text = (levelIndex + 1).ToString();
-            cell.NumberText.fontSize = 36;
-            cell.NumberText.fontStyle = FontStyles.Bold;
-            cell.NumberText.alignment = TextAlignmentOptions.Center;
-            cell.NumberText.color = isUnlocked ? Color.white : new Color(1, 1, 1, 0.3f);
-
-            // Stars container
-            var starsGo = new GameObject("Stars");
-            starsGo.transform.SetParent(cell.Root.transform, false);
-            var starsRt = starsGo.AddComponent<RectTransform>();
-            starsRt.anchorMin = new Vector2(0, 0);
-            starsRt.anchorMax = new Vector2(1, 0.35f);
-            starsRt.offsetMin = new Vector2(5, 5);
-            starsRt.offsetMax = new Vector2(-5, -2);
-            var starsLayout = starsGo.AddComponent<HorizontalLayoutGroup>();
-            starsLayout.spacing = 2;
-            starsLayout.childAlignment = TextAnchor.MiddleCenter;
-            starsLayout.childForceExpandWidth = true;
-            starsLayout.childForceExpandHeight = true;
-
-            // 3 stars
-            for (int s = 0; s < 3; s++)
-            {
-                var starGo = new GameObject($"Star_{s}");
-                starGo.transform.SetParent(starsGo.transform, false);
-                var starImg = starGo.AddComponent<Image>();
-                bool earned = isCompleted && s < progress.BestStars;
-                starImg.color = earned ? _starActiveColor : _starInactiveColor;
-                // Simple star representation using Unicode
-                var starText = starGo.AddComponent<TextMeshProUGUI>();
-                starText.text = "\u2605"; // ★
-                starText.fontSize = 20;
-                starText.alignment = TextAlignmentOptions.Center;
-                starText.color = earned ? _starActiveColor : _starInactiveColor;
-                // Hide the image, use text for star
-                starImg.color = Color.clear;
-                cell.Stars[s] = starImg;
-            }
-
-            // Lock icon (for locked levels)
-            if (!isUnlocked)
-            {
-                var lockGo = new GameObject("Lock");
-                lockGo.transform.SetParent(cell.Root.transform, false);
-                var lockRt = lockGo.AddComponent<RectTransform>();
-                lockRt.anchorMin = new Vector2(0.25f, 0.3f);
-                lockRt.anchorMax = new Vector2(0.75f, 0.8f);
-                lockRt.offsetMin = Vector2.zero;
-                lockRt.offsetMax = Vector2.zero;
-                var lockText = lockGo.AddComponent<TextMeshProUGUI>();
-                lockText.text = "\U0001F512"; // 🔒
-                lockText.fontSize = 28;
-                lockText.alignment = TextAlignmentOptions.Center;
-                lockText.color = new Color(1, 1, 1, 0.4f);
-                cell.LockIcon = lockGo;
-                cell.NumberText.gameObject.SetActive(false);
-            }
-
-            return cell;
+            return node;
         }
 
-        private void HighlightSelected()
+        private void SpawnRoad(float x1, float y1, float x2, float y2)
         {
-            for (int i = 0; i < _cells.Count; i++)
-            {
-                var cell = _cells[i];
-                if (cell.Background == null) continue;
+            var roadGo = new GameObject("Road");
+            roadGo.transform.SetParent(_levelPathContainer, false);
+            var img = roadGo.AddComponent<Image>();
+            img.color = _roadColor;
+            img.raycastTarget = false;
 
-                if (i == _selectedLevel)
-                {
-                    cell.Background.color = _selectedColor;
-                    cell.Root.transform.DOScale(1.1f, 0.2f).SetEase(Ease.OutBack).SetUpdate(true);
-                }
-                else
-                {
-                    var progress = PlayerProgressData.GetLevelProgress(i);
-                    bool isUnlocked = i <= PlayerProgressData.GetCurrentLevel();
-                    cell.Background.color = progress.IsCompleted ? _completedColor : isUnlocked ? _unlockedColor : _lockedColor;
-                    cell.Root.transform.DOScale(1f, 0.15f).SetUpdate(true);
-                }
-            }
+            var rt = roadGo.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0);
+            rt.anchorMax = new Vector2(0.5f, 0);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2((x1 + x2) * 0.5f, (y1 + y2) * 0.5f);
+
+            float dist = Vector2.Distance(new Vector2(x1, y1), new Vector2(x2, y2));
+            rt.sizeDelta = new Vector2(_roadWidth, dist);
+
+            float angle = Mathf.Atan2(x2 - x1, y2 - y1) * Mathf.Rad2Deg;
+            rt.localRotation = Quaternion.Euler(0, 0, -angle);
+
+            // Road behind nodes
+            roadGo.transform.SetAsFirstSibling();
+        }
+
+        // ════════════════════════════════════════
+        //  SCROLL TO CURRENT
+        // ════════════════════════════════════════
+
+        private void ScrollToCurrentLevel()
+        {
+            if (_scrollRect == null || _levelPathContainer == null) return;
+
+            var contentRt = _levelPathContainer.GetComponent<RectTransform>();
+            if (contentRt == null) return;
+
+            float contentH = contentRt.sizeDelta.y;
+            var viewportRt = _scrollRect.viewport != null
+                ? _scrollRect.viewport : _scrollRect.GetComponent<RectTransform>();
+            float viewH = viewportRt.rect.height;
+            if (contentH <= viewH) return;
+
+            float targetY = _startY + _currentLevel * _nodeSpacing;
+            float norm = Mathf.Clamp01(targetY / (contentH - viewH));
+
+            DOTween.To(() => _scrollRect.verticalNormalizedPosition,
+                v => _scrollRect.verticalNormalizedPosition = v,
+                norm, 0.5f).SetEase(Ease.OutQuad).SetUpdate(true);
         }
 
         private void UpdatePlayButton()
         {
             if (_playButtonText != null)
-                _playButtonText.text = $"PLAY LEVEL {_selectedLevel + 1}";
+                _playButtonText.text = $"Play Level {_currentLevel + 1}";
         }
 
         // ════════════════════════════════════════
         //  INTERACTIONS
         // ════════════════════════════════════════
-
-        private void OnLevelCellClicked(int levelIndex)
-        {
-            EventBus.Publish(new PlaySFXEvent { ClipName = "ButtonClick" });
-            _selectedLevel = levelIndex;
-            PlayerProgressData.SetCurrentLevel(levelIndex);
-            HighlightSelected();
-            UpdatePlayButton();
-        }
 
         private void OnPlayClicked()
         {
@@ -284,8 +215,7 @@ namespace BulletRoute.UI
                 .SetUpdate(true)
                 .OnComplete(() =>
                 {
-                    var gm = ServiceLocator.Get<GameManager>();
-                    gm?.StartCurrentLevel();
+                    ServiceLocator.Get<GameManager>()?.StartCurrentLevel();
                 });
         }
 

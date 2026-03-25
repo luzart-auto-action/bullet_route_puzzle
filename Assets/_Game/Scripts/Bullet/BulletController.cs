@@ -49,12 +49,21 @@ namespace BulletRoute.Bullet
         {
             if (_visualRoot == null) return;
             _visualRoot.localScale = Vector3.zero;
+
+            // Spawn animation: scale in with bounce
+            // IMPORTANT: NO SetLoops(-1) inside Sequence — causes undefined behavior in DOTween
             DOTween.Sequence()
                 .SetTarget(transform)
                 .Append(_visualRoot.DOScale(Vector3.one * 1.2f, _spawnScaleTime * 0.6f).SetEase(Ease.OutBack))
                 .Append(_visualRoot.DOScale(Vector3.one, _spawnScaleTime * 0.4f).SetEase(Ease.InOutQuad))
-                .Append(_visualRoot.DOScale(Vector3.one * (1f + _pulseScale), _pulseDuration)
-                    .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo));
+                .OnComplete(() =>
+                {
+                    // Pulse as STANDALONE tween — safe to loop infinitely
+                    _visualRoot.DOScale(Vector3.one * (1f + _pulseScale), _pulseDuration)
+                        .SetTarget(transform)
+                        .SetEase(Ease.InOutSine)
+                        .SetLoops(-1, LoopType.Yoyo);
+                });
         }
 
         // ════════════════════════════════════════

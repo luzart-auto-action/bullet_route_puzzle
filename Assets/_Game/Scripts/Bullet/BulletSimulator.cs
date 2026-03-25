@@ -379,15 +379,23 @@ namespace BulletRoute.Bullet
 
         private void CheckSimulationEnd()
         {
-            if (!_isSimulating) return;
+            Debug.Log($"[SimEnd] _isSimulating={_isSimulating} _targetsRemaining={_targetsRemaining} activeBullets={_activeBullets.Count}");
+
+            if (!_isSimulating)
+            {
+                Debug.Log("[SimEnd] SKIP: _isSimulating is false");
+                return;
+            }
 
             if (_targetsRemaining <= 0)
             {
+                Debug.Log("[SimEnd] → WIN path");
                 _isSimulating = false;
                 _endDelayTween?.Kill(false);
                 _endDelayTween = DOVirtual.DelayedCall(0.5f, () =>
                 {
                     _endDelayTween = null;
+                    Debug.Log("[SimEnd] WIN delayed callback fired → publishing LevelCompletedEvent");
                     var lm = ServiceLocator.Get<LevelManager>();
                     var timer = ServiceLocator.Get<LevelTimer>();
                     int moves = lm != null ? lm.MoveCount : 0;
@@ -395,6 +403,7 @@ namespace BulletRoute.Bullet
                     float timeLeft = timer != null ? timer.TimeRemaining : 0f;
                     float timeLimit = timer != null ? timer.TimeLimit : 0f;
                     int stars = lm?.CurrentLevel != null ? lm.CurrentLevel.CalculateStarsByTime(timeLeft) : 1;
+                    Debug.Log($"[SimEnd] LevelCompleted: level={levelIdx} stars={stars} moves={moves}");
                     EventBus.Publish(new LevelCompletedEvent
                     { LevelIndex = levelIdx, Stars = stars, MoveCount = moves,
                       TimeRemaining = timeLeft, TimeLimit = timeLimit });
@@ -402,18 +411,27 @@ namespace BulletRoute.Bullet
                 return;
             }
 
+            bool allDone = true;
             foreach (var b in _activeBullets)
-                if (b != null && b.IsActive) return;
+            {
+                if (b != null && b.IsActive) { allDone = false; break; }
+            }
+            Debug.Log($"[SimEnd] allDone={allDone}");
 
+            if (!allDone) return;
+
+            Debug.Log("[SimEnd] → SETUP path (all bullets done, targets remaining)");
             _isSimulating = false;
             _endDelayTween?.Kill(false);
             _endDelayTween = DOVirtual.DelayedCall(0.3f, () =>
             {
                 _endDelayTween = null;
+                Debug.Log("[SimEnd] SETUP delayed callback fired → cleanup + ChangeState(Setup)");
                 _bulletManager?.ReturnAllBullets();
                 _activeBullets.Clear();
                 ServiceLocator.Get<LevelManager>()?.ResetAllTargets();
                 var sm = ServiceLocator.Get<GameStateManager>();
+                Debug.Log($"[SimEnd] CurrentState={sm?.CurrentStateType}");
                 if (sm != null && sm.CurrentStateType == GameStateType.Simulating)
                     sm.ChangeState(GameStateType.Setup);
             });

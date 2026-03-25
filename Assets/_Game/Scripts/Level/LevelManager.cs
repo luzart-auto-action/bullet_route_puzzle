@@ -136,7 +136,13 @@ namespace BulletRoute.Level
 
         public void FireBullets()
         {
-            if (_bulletSimulator.IsSimulating) return;
+            Debug.Log($"[FireBullets] IsSimulating={_bulletSimulator.IsSimulating} turrets={_turrets.Count} targets={_targets.Count}");
+
+            if (_bulletSimulator.IsSimulating)
+            {
+                Debug.Log("[FireBullets] BLOCKED: IsSimulating is true");
+                return;
+            }
 
             // Reset all targets and return leftover bullets
             foreach (var target in _targets)
@@ -159,9 +165,12 @@ namespace BulletRoute.Level
                 turret.AnimateChargeUp(() => turret.AnimateFire());
             }
 
+            Debug.Log($"[FireBullets] Scheduling StartSimulation in 0.4s with {turretDataList.Count} turrets, {_targets.Count} targets");
+
             // Start simulation with delay for charge animation
             DOVirtual.DelayedCall(0.4f, () =>
             {
+                Debug.Log("[FireBullets] DelayedCall fired → StartSimulation");
                 _bulletSimulator.StartSimulation(turretDataList, _targets.Count);
             });
         }
