@@ -115,7 +115,12 @@ namespace BulletRoute.Core
 
         private void OnPlayPressed(PlayButtonPressedEvent evt)
         {
-            if (_stateManager.CurrentStateType != GameStateType.Setup) return;
+            Debug.Log($"[GameManager] OnPlayPressed: CurrentState={_stateManager.CurrentStateType}");
+            if (_stateManager.CurrentStateType != GameStateType.Setup)
+            {
+                Debug.Log("[GameManager] BLOCKED: not in Setup state");
+                return;
+            }
             _stateManager.ChangeState(GameStateType.Simulating);
             _levelManager.FireBullets();
         }
