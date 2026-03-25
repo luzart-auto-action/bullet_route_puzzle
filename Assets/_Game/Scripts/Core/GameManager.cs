@@ -48,19 +48,30 @@ namespace BulletRoute.Core
 
         private void Start()
         {
-            _stateManager = ServiceLocator.Get<GameStateManager>();
-            _levelManager = ServiceLocator.Get<LevelManager>();
+            try
+            {
+                Debug.Log("[GameManager] Start() BEGIN");
+                _stateManager = ServiceLocator.Get<GameStateManager>();
+                Debug.Log($"[GameManager] GameStateManager: {(_stateManager != null ? "OK" : "NULL")}");
+                _levelManager = ServiceLocator.Get<LevelManager>();
+                Debug.Log($"[GameManager] LevelManager: {(_levelManager != null ? "OK" : "NULL")}");
 
-            // GameManager is the SINGLE orchestrator for all game events.
-            EventBus.Subscribe<PlayButtonPressedEvent>(OnPlayPressed);
-            EventBus.Subscribe<ResetButtonPressedEvent>(OnResetPressed);
-            EventBus.Subscribe<LevelCompletedEvent>(OnLevelCompleted);
-            EventBus.Subscribe<LevelFailedEvent>(OnLevelFailed);
-            EventBus.Subscribe<GoToMainMenuEvent>(OnGoToMainMenu);
-            EventBus.Subscribe<TimerExpiredEvent>(OnTimerExpired);
+                // GameManager is the SINGLE orchestrator for all game events.
+                EventBus.Subscribe<PlayButtonPressedEvent>(OnPlayPressed);
+                EventBus.Subscribe<ResetButtonPressedEvent>(OnResetPressed);
+                EventBus.Subscribe<LevelCompletedEvent>(OnLevelCompleted);
+                EventBus.Subscribe<LevelFailedEvent>(OnLevelFailed);
+                EventBus.Subscribe<GoToMainMenuEvent>(OnGoToMainMenu);
+                EventBus.Subscribe<TimerExpiredEvent>(OnTimerExpired);
 
-            // Start at Main Menu
-            _stateManager.ChangeState(GameStateType.MainMenu);
+                // Start at Main Menu
+                _stateManager.ChangeState(GameStateType.MainMenu);
+                Debug.Log("[GameManager] Start() END - MainMenu state set");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[GameManager] Start() CRASHED: {e.Message}\n{e.StackTrace}");
+            }
         }
 
         // ==================== PUBLIC API ====================

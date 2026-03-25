@@ -45,10 +45,19 @@ namespace BulletRoute.Level
 
         private void Start()
         {
-            _gridManager = ServiceLocator.Get<GridManager>();
-            _tileFactory = ServiceLocator.Get<TileFactory>();
-            _bulletSimulator = ServiceLocator.Get<BulletSimulator>();
-            _bulletManager = ServiceLocator.Get<BulletManager>();
+            try
+            {
+                Debug.Log($"[LevelManager] Start() BEGIN - _levels.Count={_levels.Count}");
+                _gridManager = ServiceLocator.Get<GridManager>();
+                _tileFactory = ServiceLocator.Get<TileFactory>();
+                _bulletSimulator = ServiceLocator.Get<BulletSimulator>();
+                _bulletManager = ServiceLocator.Get<BulletManager>();
+                Debug.Log($"[LevelManager] Start() END - Grid:{_gridManager != null} Tile:{_tileFactory != null} Bullet:{_bulletSimulator != null} BulletMgr:{_bulletManager != null}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[LevelManager] Start() CRASHED: {e.Message}\n{e.StackTrace}");
+            }
         }
 
         // LevelManager is a WORKER - GameManager is the orchestrator.
@@ -56,26 +65,48 @@ namespace BulletRoute.Level
 
         public void LoadLevel(int index)
         {
+            if (_levels.Count == 0)
+            {
+                Debug.LogError("[LevelManager] No levels assigned! Check _levels list in Inspector.");
+                return;
+            }
+
             if (index < 0 || index >= _levels.Count)
             {
-                Debug.LogError($"[LevelManager] Invalid level index: {index}");
-                //return;
-                index = Random.Range(3, _levels.Count);
+                Debug.LogWarning($"[LevelManager] Level index {index} out of range (0-{_levels.Count - 1}), clamping.");
+                index = Mathf.Clamp(index, 0, _levels.Count - 1);
             }
 
             _currentLevelIndex = index;
             _currentLevel = _levels[index];
+            if (_currentLevel == null)
+            {
+                Debug.LogError($"[LevelManager] _levels[{index}] is NULL! Asset missing from build.");
+                return;
+            }
+            Debug.Log($"[LevelManager] LoadLevel({index}): '{_currentLevel.LevelName}' grid={_currentLevel.GridWidth}x{_currentLevel.GridHeight} tiles={_currentLevel.Tiles?.Count} turrets={_currentLevel.Turrets?.Count} targets={_currentLevel.Targets?.Count}");
             _commandManager.Clear();
             _turrets.Clear();
             _targets.Clear();
 
-            BuildLevel(_currentLevel);
+            try
+            {
+                BuildLevel(_currentLevel);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[LevelManager] BuildLevel CRASHED: {e.Message}\n{e.StackTrace}");
+            }
 
             EventBus.Publish(new LevelStartedEvent { LevelIndex = index });
         }
 
         private void BuildLevel(LevelData data)
         {
+            Debug.Log($"[BuildLevel] data={data != null} gridMgr={_gridManager != null} tileFactory={_tileFactory != null}");
+            if (data == null) { Debug.LogError("[BuildLevel] LevelData is NULL!"); return; }
+            if (_gridManager == null) { Debug.LogError("[BuildLevel] GridManager is NULL! (Start() not called yet?)"); return; }
+            if (_tileFactory == null) { Debug.LogError("[BuildLevel] TileFactory is NULL!"); return; }
             _gridManager.InitializeGrid(data.GridWidth, data.GridHeight);
 
             // ClearLevel() already destroyed _tileParent, create fresh one

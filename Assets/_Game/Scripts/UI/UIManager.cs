@@ -14,12 +14,14 @@ namespace BulletRoute.UI
 
         private void Awake()
         {
+            Debug.Log($"[UIManager] Awake() - {_panels.Count} panels");
             foreach (var panel in _panels)
             {
                 if (panel != null)
                 {
                     _panelMap[panel.PanelName] = panel;
                     panel.gameObject.SetActive(false);
+                    Debug.Log($"[UIManager] Registered panel: '{panel.PanelName}'");
                 }
             }
             ServiceLocator.Register(this);

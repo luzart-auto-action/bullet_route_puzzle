@@ -26,7 +26,7 @@ namespace BulletRoute.Grid
         private int _width;
         private int _height;
         private Vector3 _gridOrigin;
-        private Material _runtimeCellBgMat;
+
 
         public int Width => _width;
         public int Height => _height;
@@ -50,11 +50,10 @@ namespace BulletRoute.Grid
             float totalHeight = height * TotalCellSize - _cellSpacing;
             _gridOrigin = new Vector3(-totalWidth / 2f + _cellSize / 2f, 0f, -totalHeight / 2f + _cellSize / 2f);
 
-            // Ensure cell background material
+            // Use the assigned material; if none, log error instead of crashing
             if (_cellBgMaterial == null)
             {
-                _runtimeCellBgMat = new Material(Shader.Find("Unlit/Color"));
-                _runtimeCellBgMat.color = _cellBgColor;
+                Debug.LogError("[GridManager] _cellBgMaterial is not assigned! Assign a material in Inspector.");
             }
 
             for (int x = 0; x < width; x++)
@@ -117,7 +116,8 @@ namespace BulletRoute.Grid
             bg.transform.localScale = new Vector3(_cellSize, _cellSize, 1f);
 
             var renderer = bg.GetComponent<Renderer>();
-            renderer.material = _cellBgMaterial != null ? _cellBgMaterial : _runtimeCellBgMat;
+            if (_cellBgMaterial != null)
+                renderer.material = _cellBgMaterial;
 
             cell.BackgroundObject = bg;
         }

@@ -10042,7 +10042,7 @@ MonoBehaviour:
   _cellAppearDelay: 0.03
   _cellAppearEase: 27
   _cellBgColor: {r: 0.23148806, g: 0.26751533, b: 0.3207547, a: 1}
-  _cellBgMaterial: {fileID: 0}
+  _cellBgMaterial: {fileID: 2100000, guid: beb4eddbbba914643b23eaa9c7cab4dd, type: 2}
 --- !u!4 &2117170786
 Transform:
   m_ObjectHideFlags: 0
