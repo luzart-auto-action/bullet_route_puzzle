@@ -24,6 +24,13 @@ namespace BulletRoute.Bullet
         private List<BulletController> _activeBullets = new List<BulletController>();
         private Tween _endDelayTween;
 
+        // ── Snapshot: save grid state before simulation, restore on miss ──
+        private GridSnapshot _gridSnapshot = new GridSnapshot();
+        // Track blocks destroyed by bombs during simulation (for visual cleanup)
+        private List<DestroyedBlockInfo> _destroyedBlocks = new List<DestroyedBlockInfo>();
+        // Track pending splits to avoid premature "allDone" checks
+        private int _pendingSplits;
+
         public bool IsSimulating => _isSimulating;
 
         // ════════════════════════════════════════
@@ -47,6 +54,17 @@ namespace BulletRoute.Bullet
             public Vector3 PortalExitWorldPos;
             public Direction SplitDir;
             public Vector2Int SplitFromPos;
+        }
+
+        /// <summary>
+        /// Tracks a block tile that was destroyed by a bomb during simulation.
+        /// Needed to restore on miss.
+        /// </summary>
+        private class DestroyedBlockInfo
+        {
+            public Vector2Int GridPos;
+            public TileType Type;
+            public int Rotation;
         }
 
         // ════════════════════════════════════════
@@ -73,6 +91,12 @@ namespace BulletRoute.Bullet
             _targetsRemaining = targetCount;
             _totalTargets = targetCount;
             _activeBullets.Clear();
+            _destroyedBlocks.Clear();
+            _pendingSplits = 0;
+
+            // ── Snapshot: capture grid state BEFORE any bullets move ──
+            _gridSnapshot.Capture(_gridManager);
+            Debug.Log($"[Simulation] Snapshot captured: {_gridSnapshot.Tiles.Count} tiles");
 
             Sequence master = DOTween.Sequence();
             master.SetTarget(this);
@@ -87,6 +111,7 @@ namespace BulletRoute.Bullet
         public void StopSimulation()
         {
             _isSimulating = false;
+            _pendingSplits = 0;
             DOTween.Kill(this);
             _endDelayTween?.Kill(false);
             _endDelayTween = null;
@@ -94,6 +119,8 @@ namespace BulletRoute.Bullet
             foreach (var b in _activeBullets)
                 if (b != null) b.Deactivate();
             _activeBullets.Clear();
+            _destroyedBlocks.Clear();
+            _gridSnapshot.Clear();
         }
 
         // ════════════════════════════════════════
@@ -214,6 +241,12 @@ namespace BulletRoute.Bullet
             Sequence seq = DOTween.Sequence();
             seq.SetTarget(bullet.transform);
 
+            // Count how many splits are in this path so we can track pending
+            int splitCount = 0;
+            foreach (var step in path)
+                if (step.Type == StepType.Split) splitCount++;
+            _pendingSplits += splitCount;
+
             foreach (var step in path)
             {
                 var s = step;
@@ -226,7 +259,7 @@ namespace BulletRoute.Bullet
                         seq.Append(bullet.MoveTo(s.WorldPos));
                         seq.AppendCallback(() =>
                         {
-                            s.Tile.AnimateBulletPass(s.EntryDir, s.ExitDir);
+                            if (s.Tile != null) s.Tile.AnimateBulletPass(s.EntryDir, s.ExitDir);
                             if (s.Type == StepType.BombExplode) DestroyAdjacentBlocks(s.GridPos);
                         });
                         seq.AppendInterval(_stepDelay);
@@ -237,7 +270,7 @@ namespace BulletRoute.Bullet
                         seq.Append(bullet.MoveTo(s.WorldPos));
                         seq.AppendCallback(() =>
                         {
-                            s.Tile.AnimateBulletPass(s.EntryDir, s.ExitDir);
+                            if (s.Tile != null) s.Tile.AnimateBulletPass(s.EntryDir, s.ExitDir);
                             bullet.AnimateHitTarget();
                             OnTargetHit(s.GridPos);
                         });
@@ -259,20 +292,24 @@ namespace BulletRoute.Bullet
                         seq.Append(bullet.MoveTo(s.WorldPos));
                         seq.AppendCallback(() =>
                         {
-                            s.Portal.AnimateTeleportIn();
+                            if (s.Portal != null) s.Portal.AnimateTeleportIn();
                             EventBus.Publish(new BulletTeleportedEvent
                             { FromPortal = s.Portal.GridPosition, ToPortal = s.PairedPortal.GridPosition });
                         });
                         seq.AppendCallback(() =>
                         {
                             bullet.AnimateTeleport(s.PortalExitWorldPos, null);
-                            s.PairedPortal.AnimateTeleportOut();
+                            if (s.PairedPortal != null) s.PairedPortal.AnimateTeleportOut();
                         });
                         seq.AppendInterval(0.4f);
                         break;
 
                     case StepType.Split:
-                        seq.AppendCallback(() => RunBullet(s.SplitFromPos, s.SplitDir));
+                        seq.AppendCallback(() =>
+                        {
+                            _pendingSplits--;
+                            RunBullet(s.SplitFromPos, s.SplitDir);
+                        });
                         break;
                 }
             }
@@ -285,6 +322,12 @@ namespace BulletRoute.Bullet
         private void RunBullet(Vector2Int startPos, Direction startDir)
         {
             var bullet = _bulletManager.SpawnBullet();
+            if (bullet == null)
+            {
+                Debug.LogError("[BulletSimulator] Failed to spawn bullet!");
+                return;
+            }
+
             bullet.Initialize(_gridManager.GridToWorldPosition(startPos), startDir);
             _activeBullets.Add(bullet);
 
@@ -342,6 +385,10 @@ namespace BulletRoute.Bullet
             return null;
         }
 
+        /// <summary>
+        /// Destroy block tiles adjacent to a bomb.
+        /// Tracks destroyed blocks so we can restore them on miss.
+        /// </summary>
         private void DestroyAdjacentBlocks(Vector2Int pos)
         {
             Direction[] dirs = { Direction.Up, Direction.Right, Direction.Down, Direction.Left };
@@ -351,12 +398,95 @@ namespace BulletRoute.Bullet
                 var tile = _gridManager.GetTile(adj);
                 if (tile != null && tile.TileType == TileType.Block)
                 {
+                    // Track this block for potential restore
+                    _destroyedBlocks.Add(new DestroyedBlockInfo
+                    {
+                        GridPos = adj,
+                        Type = tile.TileType,
+                        Rotation = tile.RotationState
+                    });
+
                     tile.AnimateBulletPass(dir, dir);
                     var vis = tile.VisualRoot != null ? tile.VisualRoot : tile.transform;
+                    // Capture local ref to avoid closure issues
+                    var tileRef = tile;
+                    var adjPos = adj;
                     vis.DOScale(Vector3.zero, 0.3f).SetEase(Ease.InBack)
-                        .OnComplete(() => { _gridManager.SetTile(adj, null); Destroy(tile.gameObject); });
+                        .OnComplete(() =>
+                        {
+                            _gridManager.SetTile(adjPos, null);
+                            if (tileRef != null) Destroy(tileRef.gameObject);
+                        });
                 }
             }
+        }
+
+        // ════════════════════════════════════════
+        //  GRID RESTORE — revert destructive changes on miss
+        // ════════════════════════════════════════
+
+        /// <summary>
+        /// Restore grid to pre-simulation state.
+        /// Re-creates destroyed blocks, resets bombs, resets targets.
+        /// </summary>
+        private void RestoreGridFromSnapshot()
+        {
+            var lm = ServiceLocator.Get<LevelManager>();
+            var tileFactory = ServiceLocator.Get<TileFactory>();
+
+            if (lm == null || tileFactory == null)
+            {
+                Debug.LogError("[BulletSimulator] Cannot restore: LevelManager or TileFactory is null");
+                return;
+            }
+
+            // 1. Re-create destroyed block tiles
+            foreach (var block in _destroyedBlocks)
+            {
+                // Only re-create if the cell is still empty
+                var existing = _gridManager.GetTile(block.GridPos);
+                if (existing != null) continue;
+
+                var newTile = tileFactory.CreateTile(block.Type, block.GridPos, block.Rotation, lm.TileParent);
+                if (newTile != null)
+                {
+                    _gridManager.SetTile(block.GridPos, newTile);
+                    // Animate block appearing
+                    var vis = newTile.VisualRoot != null ? newTile.VisualRoot : newTile.transform;
+                    vis.localScale = Vector3.zero;
+                    vis.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
+
+                    Debug.Log($"[Restore] Re-created Block at ({block.GridPos.x},{block.GridPos.y})");
+                }
+            }
+            _destroyedBlocks.Clear();
+
+            // 2. Reset all bombs (exploded state + visual)
+            lm.ResetAllBombs();
+
+            // 3. Reset all targets (hit state + visual)
+            lm.ResetAllTargets();
+
+            // 4. Reset visual scale for all remaining tiles
+            // (some tiles may have residual animation states from bullet pass)
+            foreach (var cell in _gridManager.GetAllCells())
+            {
+                if (cell.TileInstance == null) continue;
+                // Skip targets and bombs - they have their own reset
+                if (cell.TileInstance is BombTile) continue;
+                if (cell.TileInstance.TileType == TileType.Target) continue;
+
+                var vis = cell.TileInstance.VisualRoot != null
+                    ? cell.TileInstance.VisualRoot
+                    : cell.TileInstance.transform;
+
+                // Kill any lingering tweens and ensure scale is correct
+                DOTween.Kill(vis);
+                vis.localScale = Vector3.one;
+            }
+
+            _gridSnapshot.Clear();
+            Debug.Log("[Restore] Grid restored from snapshot");
         }
 
         // ════════════════════════════════════════
@@ -365,6 +495,9 @@ namespace BulletRoute.Bullet
 
         private void OnTargetHit(Vector2Int pos)
         {
+            // Guard against going negative (e.g., two split bullets hitting same target)
+            if (_targetsRemaining <= 0) return;
+
             _targetsRemaining--;
             EventBus.Publish(new BulletHitTargetEvent
             { TargetPos = pos, TargetIndex = _totalTargets - _targetsRemaining });
@@ -379,7 +512,8 @@ namespace BulletRoute.Bullet
 
         private void CheckSimulationEnd()
         {
-            Debug.Log($"[SimEnd] _isSimulating={_isSimulating} _targetsRemaining={_targetsRemaining} activeBullets={_activeBullets.Count}");
+            Debug.Log($"[SimEnd] _isSimulating={_isSimulating} _targetsRemaining={_targetsRemaining} " +
+                      $"activeBullets={_activeBullets.Count} pendingSplits={_pendingSplits}");
 
             if (!_isSimulating)
             {
@@ -387,10 +521,12 @@ namespace BulletRoute.Bullet
                 return;
             }
 
+            // ── WIN: all targets hit ──
             if (_targetsRemaining <= 0)
             {
                 Debug.Log("[SimEnd] → WIN path");
                 _isSimulating = false;
+                _pendingSplits = 0;
                 _endDelayTween?.Kill(false);
                 _endDelayTween = DOVirtual.DelayedCall(0.5f, () =>
                 {
@@ -407,29 +543,52 @@ namespace BulletRoute.Bullet
                     EventBus.Publish(new LevelCompletedEvent
                     { LevelIndex = levelIdx, Stars = stars, MoveCount = moves,
                       TimeRemaining = timeLeft, TimeLimit = timeLimit });
+
+                    // Clear snapshot on win (no restore needed)
+                    _destroyedBlocks.Clear();
+                    _gridSnapshot.Clear();
                 });
                 return;
             }
 
+            // ── Check if all bullets are done ──
+            // Copy to temp list to avoid collection-modification issues from splits
             bool allDone = true;
-            foreach (var b in _activeBullets)
+            for (int i = 0; i < _activeBullets.Count; i++)
             {
-                if (b != null && b.IsActive) { allDone = false; break; }
+                var b = _activeBullets[i];
+                if (b != null && b.IsActive)
+                {
+                    allDone = false;
+                    break;
+                }
             }
+
+            // Also wait for pending splits to spawn their bullets
+            if (_pendingSplits > 0) allDone = false;
+
             Debug.Log($"[SimEnd] allDone={allDone}");
 
             if (!allDone) return;
 
+            // ── MISS: return to Setup with grid restoration ──
             Debug.Log("[SimEnd] → SETUP path (all bullets done, targets remaining)");
             _isSimulating = false;
+            _pendingSplits = 0;
             _endDelayTween?.Kill(false);
             _endDelayTween = DOVirtual.DelayedCall(0.3f, () =>
             {
                 _endDelayTween = null;
-                Debug.Log("[SimEnd] SETUP delayed callback fired → cleanup + ChangeState(Setup)");
+                Debug.Log("[SimEnd] SETUP delayed callback fired → restore grid + ChangeState(Setup)");
+
+                // Cleanup bullets
                 _bulletManager?.ReturnAllBullets();
                 _activeBullets.Clear();
-                ServiceLocator.Get<LevelManager>()?.ResetAllTargets();
+
+                // ── RESTORE GRID: re-create destroyed blocks, reset bombs & targets ──
+                RestoreGridFromSnapshot();
+
+                // Transition back to Setup
                 var sm = ServiceLocator.Get<GameStateManager>();
                 Debug.Log($"[SimEnd] CurrentState={sm?.CurrentStateType}");
                 if (sm != null && sm.CurrentStateType == GameStateType.Simulating)

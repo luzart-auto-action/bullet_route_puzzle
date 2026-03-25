@@ -13,6 +13,8 @@ namespace BulletRoute.Tile
 
         private bool _hasExploded;
 
+        public bool HasExploded => _hasExploded;
+
         // Bomb: bullet passes through and destroys adjacent blocks
         public override List<Direction> GetExitDirections(Direction entryDirection)
         {
@@ -33,11 +35,28 @@ namespace BulletRoute.Tile
             OnBulletHit();
         }
 
+        /// <summary>
+        /// Reset bomb to pre-explosion state.
+        /// Called when simulation fails (miss) and grid needs to revert.
+        /// </summary>
+        public void ResetBomb()
+        {
+            _hasExploded = false;
+
+            var target = _visualRoot != null ? _visualRoot : transform;
+            DOTween.Kill(target);
+            target.localScale = Vector3.one;
+
+            // Restart idle animation
+            StartIdleAnimation();
+        }
+
         private void AnimateExplosion()
         {
             var target = _visualRoot != null ? _visualRoot : transform;
 
             DOTween.Sequence()
+                .SetTarget(target)
                 .AppendInterval(_explosionDelay)
                 .Append(target.DOScale(Vector3.one * _explosionScale, 0.2f).SetEase(Ease.OutQuad))
                 .Append(target.DOScale(Vector3.zero, 0.15f).SetEase(Ease.InBack))

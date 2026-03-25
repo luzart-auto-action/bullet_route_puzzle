@@ -26,6 +26,7 @@ namespace BulletRoute.Level
         private CommandManager _commandManager;
         private LevelData _currentLevel;
         private int _currentLevelIndex;
+        private Tween _fireDelayTween;
 
         private List<TurretController> _turrets = new List<TurretController>();
         private List<TargetController> _targets = new List<TargetController>();
@@ -34,6 +35,7 @@ namespace BulletRoute.Level
         public int CurrentLevelIndex => _currentLevelIndex;
         public CommandManager CommandManager => _commandManager;
         public int MoveCount => _commandManager.MoveCount;
+        public Transform TileParent => _tileParent;
 
         private void Awake()
         {
@@ -144,6 +146,10 @@ namespace BulletRoute.Level
                 return;
             }
 
+            // Kill any pending fire delay from previous call (prevents double-fire)
+            _fireDelayTween?.Kill();
+            _fireDelayTween = null;
+
             // Reset all targets and return leftover bullets
             foreach (var target in _targets)
             {
@@ -168,8 +174,10 @@ namespace BulletRoute.Level
             Debug.Log($"[FireBullets] Scheduling StartSimulation in 0.4s with {turretDataList.Count} turrets, {_targets.Count} targets");
 
             // Start simulation with delay for charge animation
-            DOVirtual.DelayedCall(0.4f, () =>
+            // Track the tween so we can kill it on reset/clear
+            _fireDelayTween = DOVirtual.DelayedCall(0.4f, () =>
             {
+                _fireDelayTween = null;
                 Debug.Log("[FireBullets] DelayedCall fired → StartSimulation");
                 _bulletSimulator.StartSimulation(turretDataList, _targets.Count);
             });
@@ -183,8 +191,26 @@ namespace BulletRoute.Level
             }
         }
 
+        /// <summary>
+        /// Reset all bomb tiles on the grid to pre-explosion state.
+        /// Called when simulation fails and grid needs to revert.
+        /// </summary>
+        public void ResetAllBombs()
+        {
+            foreach (var cell in _gridManager.GetAllCells())
+            {
+                if (cell.TileInstance is BombTile bomb)
+                {
+                    bomb.ResetBomb();
+                }
+            }
+        }
+
         public void ResetLevel()
         {
+            _fireDelayTween?.Kill();
+            _fireDelayTween = null;
+
             _bulletSimulator.StopSimulation();
             _bulletManager.ReturnAllBullets();
 
@@ -200,6 +226,9 @@ namespace BulletRoute.Level
 
         public void StopAllBullets()
         {
+            _fireDelayTween?.Kill();
+            _fireDelayTween = null;
+
             _bulletSimulator.StopSimulation();
             _bulletManager.ReturnAllBullets();
         }
@@ -213,6 +242,9 @@ namespace BulletRoute.Level
         public void ClearLevel()
         {
             DOTween.KillAll(false); // Kill ALL tweens to prevent any stale references
+
+            _fireDelayTween?.Kill();
+            _fireDelayTween = null;
 
             _bulletSimulator.StopSimulation();
             _bulletManager.ReturnAllBullets();
@@ -232,6 +264,7 @@ namespace BulletRoute.Level
 
         private void OnDestroy()
         {
+            _fireDelayTween?.Kill();
             ServiceLocator.Unregister<LevelManager>();
         }
     }

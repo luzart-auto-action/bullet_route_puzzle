@@ -109,8 +109,21 @@ namespace BulletRoute.Target
         public void ResetTarget()
         {
             _isHit = false;
+
+            // Kill ALL existing tweens to prevent conflicts
+            // (AnimateHit sequence may still be running when we reset)
+            _ringRotation?.Kill();
+            _ringRotation = null;
+            _beaconPulse?.Kill();
+            _beaconPulse = null;
+
             var target = _visualRoot != null ? _visualRoot : transform;
+            DOTween.Kill(target);
+
+            // Force scale back to normal immediately before animating
+            target.localScale = Vector3.one;
             target.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
+
             StartTargetAnimations();
         }
 
