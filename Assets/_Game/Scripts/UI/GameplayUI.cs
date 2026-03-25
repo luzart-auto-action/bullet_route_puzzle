@@ -11,6 +11,7 @@ namespace BulletRoute.UI
     /// Gameplay HUD — extends UIPanel so it's managed by UIManager like every other panel.
     /// Starts inactive. GameManager calls ShowPanel("GameplayUI") when entering gameplay.
     /// All subscriptions in OnEnable/OnDisable: panel active = subscribed, inactive = silent.
+    /// No CanvasGroup — uses simple SetActive for show/hide.
     /// </summary>
     public class GameplayUI : UIPanel
     {
@@ -32,12 +33,7 @@ namespace BulletRoute.UI
         [SerializeField] private float _buttonPunchDuration = 0.2f;
         [SerializeField] private float _counterPunchScale = 0.3f;
 
-        [Header("HUD Fade")]
-        [SerializeField] private float _hudFadeDuration = 0.25f;
-
-        private CanvasGroup _cg;
         private Tween _timerWarningTween;
-        private Tween _hudFadeTween;
 
         // ════════════════════════════════════════
         //  LIFECYCLE — subscribe only while active
@@ -45,9 +41,6 @@ namespace BulletRoute.UI
 
         private void OnEnable()
         {
-            _cg = GetComponent<CanvasGroup>();
-            if (_cg == null) _cg = gameObject.AddComponent<CanvasGroup>();
-
             EventBus.Subscribe<LevelStartedEvent>(OnLevelStarted);
             EventBus.Subscribe<PlayerMoveEvent>(OnPlayerMove);
             EventBus.Subscribe<GameStateChangedEvent>(OnGameStateChanged);
@@ -75,44 +68,22 @@ namespace BulletRoute.UI
 
             _timerWarningTween?.Kill();
             _timerWarningTween = null;
-            _hudFadeTween?.Kill();
         }
 
         // ════════════════════════════════════════
-        //  SHOW / HIDE — HUD style: fade only, no popup scale
+        //  SHOW / HIDE — simple SetActive, no CanvasGroup
         // ════════════════════════════════════════
 
         public override void Show()
         {
-            _hudFadeTween?.Kill();
             gameObject.SetActive(true);
-
-            if (_cg == null) _cg = GetComponent<CanvasGroup>();
-            if (_cg == null) _cg = gameObject.AddComponent<CanvasGroup>();
-
-            _cg.alpha = 0f;
-            _cg.interactable = true;
-            _cg.blocksRaycasts = true;
             transform.localScale = Vector3.one;
-
-            _hudFadeTween = _cg.DOFade(1f, _hudFadeDuration)
-                .SetEase(Ease.OutQuad)
-                .SetUpdate(true);
         }
 
         public override void Hide()
         {
             if (!gameObject.activeSelf) return;
-            _hudFadeTween?.Kill();
-            if (_cg == null) return;
-
-            _cg.interactable = false;
-            _cg.blocksRaycasts = false;
-
-            _hudFadeTween = _cg.DOFade(0f, _hudFadeDuration)
-                .SetEase(Ease.InQuad)
-                .SetUpdate(true)
-                .OnComplete(() => gameObject.SetActive(false));
+            gameObject.SetActive(false);
         }
 
         // ════════════════════════════════════════
