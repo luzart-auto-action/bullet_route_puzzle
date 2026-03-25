@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace GraveyardHunter.UI
+namespace BulletRoute.UI
 {
     /// <summary>
     /// Adjusts a RectTransform to fit within Screen.safeArea.

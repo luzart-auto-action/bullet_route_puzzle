@@ -4745,6 +4745,10 @@ PrefabInstance:
       propertyPath: _zigzagOffset
       value: 250
       objectReference: {fileID: 0}
+    - target: {fileID: 2815814192254348977, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 564
+      objectReference: {fileID: 0}
     - target: {fileID: 3243218534759631392, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
       propertyPath: m_SizeDelta.x
       value: 520.087
@@ -4776,6 +4780,10 @@ PrefabInstance:
     - target: {fileID: 3243218534759631392, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
       propertyPath: m_ConstrainProportionsScale
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5169482015920899276, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 511
       objectReference: {fileID: 0}
     - target: {fileID: 6415869512715429688, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
       propertyPath: m_Pivot.x
@@ -4900,6 +4908,14 @@ PrefabInstance:
     - target: {fileID: 8099046588402544332, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 188
+      objectReference: {fileID: 0}
+    - target: {fileID: 8369715124734240948, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 724
+      objectReference: {fileID: 0}
+    - target: {fileID: 8438785519887897885, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 516
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 628e97cbabf19274b9a74b7b95263832, type: 3}
