@@ -22,8 +22,11 @@ namespace BulletRoute.Editor
             string folder = "Assets/_Game/ScriptableObjects/Levels";
             EnsureFolder(folder);
             var levels = new List<LevelData>();
-            for (int i = 0; i < 30; i++) 
+            for (int i = 0; i < 30; i++)
                 levels.Add(Build(folder, i));
+            // Mark all levels dirty so tile/turret/target data added AFTER CreateAsset gets saved
+            foreach (var level in levels)
+                EditorUtility.SetDirty(level);
             AssetDatabase.SaveAssets(); 
             AssetDatabase.Refresh();
             var lm = Object.FindObjectOfType<LevelManager>();
@@ -34,10 +37,11 @@ namespace BulletRoute.Editor
                 so.ApplyModifiedProperties();
                 EditorUtility.SetDirty(lm);
                 EditorSceneManager.MarkSceneDirty(lm.gameObject.scene);
+                EditorSceneManager.SaveScene(lm.gameObject.scene);
             }
             AssetDatabase.SaveAssets();
             EditorUtility.DisplayDialog("Done",
-                $"{levels.Count} levels created & assigned.\n\nScene marked dirty — press Ctrl+S to save!", "OK");
+                $"{levels.Count} levels created & assigned.\n\nScene saved!", "OK");
         }
 
         static LevelData Build(string f, int i) {

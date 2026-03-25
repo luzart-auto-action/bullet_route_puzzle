@@ -23,6 +23,73 @@ MonoBehaviour:
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
-  Tiles: []
-  Turrets: []
-  Targets: []
+  Tiles:
+  - Position: {x: 4, y: 1}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 2}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 3}
+    Type: 6
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 5, y: 3}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 6, y: 3}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 7, y: 3}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 3, y: 3}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 3}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 1, y: 3}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 7}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 6}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 4}
+    Type: 4
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  Turrets:
+  - Position: {x: 4, y: 0}
+    FireDirection: 0
+  - Position: {x: 4, y: 8}
+    FireDirection: 2
+  Targets:
+  - Position: {x: 8, y: 3}
+  - Position: {x: 0, y: 3}
+  - Position: {x: 4, y: 5}

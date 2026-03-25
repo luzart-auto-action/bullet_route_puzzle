@@ -23,6 +23,24 @@ MonoBehaviour:
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
-  Tiles: []
-  Turrets: []
-  Targets: []
+  Tiles:
+  - Position: {x: 2, y: 3}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 2}
+    Type: 5
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 3, y: 2}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  Turrets:
+  - Position: {x: 2, y: 4}
+    FireDirection: 2
+  Targets:
+  - Position: {x: 4, y: 2}

@@ -101,7 +101,7 @@ namespace BulletRoute.Bullet
 
             // Safety timeout: fallback if simulation gets stuck (should never trigger with recycling fix)
             _safetyTimeoutTween?.Kill();
-            _safetyTimeoutTween = DOVirtual.DelayedCall(5f, () =>
+            _safetyTimeoutTween = DOVirtual.DelayedCall(15f, () =>
             {
                 if (!_isSimulating) return;
                 Debug.LogWarning("[Simulation] SAFETY TIMEOUT: simulation stuck for 5s, forcing back to Setup");

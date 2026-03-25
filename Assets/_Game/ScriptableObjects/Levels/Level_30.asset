@@ -23,6 +23,137 @@ MonoBehaviour:
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
-  Tiles: []
-  Turrets: []
-  Targets: []
+  Tiles:
+  - Position: {x: 1, y: 5}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 5}
+    Type: 5
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 4}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 3}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 2}
+    Type: 2
+    Rotation: 1
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 3, y: 2}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 2}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 5, y: 2}
+    Type: 3
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 6, y: 2}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 7, y: 2}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 8, y: 2}
+    Type: 2
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 8, y: 3}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 8, y: 4}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 8, y: 5}
+    Type: 2
+    Rotation: 2
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 5, y: 1}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 5, y: 3}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 5, y: 4}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 5, y: 5}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 5, y: 6}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 5, y: 7}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 5, y: 8}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 9, y: 2}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 9, y: 3}
+    Type: 4
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 3, y: 5}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 5}
+    Type: 4
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  Turrets:
+  - Position: {x: 0, y: 5}
+    FireDirection: 1
+  - Position: {x: 5, y: 0}
+    FireDirection: 0
+  Targets:
+  - Position: {x: 9, y: 5}
+  - Position: {x: 5, y: 9}

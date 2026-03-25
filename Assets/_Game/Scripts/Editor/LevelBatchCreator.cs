@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using System.Collections.Generic;
 using BulletRoute.Core;
 using BulletRoute.Level;
@@ -27,6 +28,9 @@ namespace BulletRoute.Editor
             levels.Add(CreateLevel9(folder));
             levels.Add(CreateLevel10(folder));
 
+            // Mark all levels dirty so tile/turret/target data added AFTER CreateAsset gets saved
+            foreach (var level in levels)
+                EditorUtility.SetDirty(level);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -43,13 +47,16 @@ namespace BulletRoute.Editor
                     prop.GetArrayElementAtIndex(i).objectReferenceValue = levels[i];
                 }
                 so.ApplyModifiedPropertiesWithoutUndo();
-                Debug.Log("[BulletRoute] 10 levels assigned to LevelManager");
+                EditorUtility.SetDirty(lm);
+                EditorSceneManager.MarkSceneDirty(lm.gameObject.scene);
+                EditorSceneManager.SaveScene(lm.gameObject.scene);
+                Debug.Log("[BulletRoute] 10 levels assigned to LevelManager, scene saved");
             }
 
             EditorUtility.DisplayDialog("Levels Created",
                 "10 playable levels have been created!\n\n" +
                 "All levels verified with correct bullet paths.\n" +
-                "Assigned to LevelManager if present in scene.",
+                "Assigned to LevelManager. Scene saved!",
                 "OK");
         }
 
