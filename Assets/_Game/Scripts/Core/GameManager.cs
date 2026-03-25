@@ -34,7 +34,9 @@ namespace BulletRoute.Core
         private void Awake()
         {
             Application.targetFrameRate = 60;
-            DOTween.Init(true, true, LogBehaviour.ErrorsOnly)
+            // recycleAllByDefault must be FALSE — recycling causes Sequences to stall
+            // because nested tweens get recycled prematurely, making the Sequence lose track of them.
+            DOTween.Init(false, true, LogBehaviour.ErrorsOnly)
                 .SetCapacity(_tweenCapacity, _sequenceCapacity);
             DOTween.defaultAutoPlay = AutoPlay.All;
             DOTween.defaultUpdateType = UpdateType.Normal;

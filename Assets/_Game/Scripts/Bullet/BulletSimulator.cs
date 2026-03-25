@@ -99,12 +99,12 @@ namespace BulletRoute.Bullet
             _gridSnapshot.Capture(_gridManager);
             Debug.Log($"[Simulation] Snapshot captured: {_gridSnapshot.Tiles.Count} tiles");
 
-            // Safety timeout: if simulation doesn't end within 15s, force it back to Setup
+            // Safety timeout: fallback if simulation gets stuck (should never trigger with recycling fix)
             _safetyTimeoutTween?.Kill();
-            _safetyTimeoutTween = DOVirtual.DelayedCall(15f, () =>
+            _safetyTimeoutTween = DOVirtual.DelayedCall(5f, () =>
             {
                 if (!_isSimulating) return;
-                Debug.LogWarning("[Simulation] SAFETY TIMEOUT: simulation stuck for 15s, forcing back to Setup");
+                Debug.LogWarning("[Simulation] SAFETY TIMEOUT: simulation stuck for 5s, forcing back to Setup");
                 ForceEndSimulation();
             });
 
