@@ -36,8 +36,23 @@ namespace BulletRoute.UI
         private Tween _timerWarningTween;
 
         // ════════════════════════════════════════
-        //  LIFECYCLE — subscribe only while active
+        //  LIFECYCLE
         // ════════════════════════════════════════
+
+        /// <summary>
+        /// Override base UIPanel.Awake to prevent auto-creation of CanvasGroup.
+        /// GameplayUI doesn't need CanvasGroup — it uses simple SetActive.
+        /// </summary>
+        protected override void Awake()
+        {
+            // Intentionally skip base.Awake() — do NOT auto-create CanvasGroup.
+            // If a CanvasGroup was manually attached in the Inspector, destroy it.
+            var cg = GetComponent<CanvasGroup>();
+            if (cg != null)
+            {
+                DestroyImmediate(cg);
+            }
+        }
 
         private void OnEnable()
         {
@@ -78,6 +93,16 @@ namespace BulletRoute.UI
         {
             gameObject.SetActive(true);
             transform.localScale = Vector3.one;
+
+            // Defensive: if a CanvasGroup somehow exists (e.g. ForceHideAll left one),
+            // reset it so UI is visible and interactable
+            var cg = GetComponent<CanvasGroup>();
+            if (cg != null)
+            {
+                cg.alpha = 1f;
+                cg.interactable = true;
+                cg.blocksRaycasts = true;
+            }
         }
 
         public override void Hide()

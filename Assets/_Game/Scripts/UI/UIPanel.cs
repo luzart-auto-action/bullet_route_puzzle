@@ -23,7 +23,7 @@ namespace BulletRoute.UI
 
         public string PanelName => _panelName;
 
-        private void Awake()
+        protected virtual void Awake()
         {
             if (_canvasGroup == null)
                 _canvasGroup = GetComponent<CanvasGroup>();
