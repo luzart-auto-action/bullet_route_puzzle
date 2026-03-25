@@ -23,6 +23,7 @@ namespace BulletRoute.Bullet
         private int _totalTargets;
         private List<BulletController> _activeBullets = new List<BulletController>();
         private Tween _endDelayTween;
+        private Tween _safetyTimeoutTween;
 
         // ── Snapshot: save grid state before simulation, restore on miss ──
         private GridSnapshot _gridSnapshot = new GridSnapshot();
@@ -98,6 +99,15 @@ namespace BulletRoute.Bullet
             _gridSnapshot.Capture(_gridManager);
             Debug.Log($"[Simulation] Snapshot captured: {_gridSnapshot.Tiles.Count} tiles");
 
+            // Safety timeout: if simulation doesn't end within 15s, force it back to Setup
+            _safetyTimeoutTween?.Kill();
+            _safetyTimeoutTween = DOVirtual.DelayedCall(15f, () =>
+            {
+                if (!_isSimulating) return;
+                Debug.LogWarning("[Simulation] SAFETY TIMEOUT: simulation stuck for 15s, forcing back to Setup");
+                ForceEndSimulation();
+            });
+
             Sequence master = DOTween.Sequence();
             master.SetTarget(this);
             for (int i = 0; i < turrets.Count; i++)
@@ -115,12 +125,37 @@ namespace BulletRoute.Bullet
             DOTween.Kill(this);
             _endDelayTween?.Kill(false);
             _endDelayTween = null;
+            _safetyTimeoutTween?.Kill();
+            _safetyTimeoutTween = null;
 
             foreach (var b in _activeBullets)
                 if (b != null) b.Deactivate();
             _activeBullets.Clear();
             _destroyedBlocks.Clear();
             _gridSnapshot.Clear();
+        }
+
+        /// <summary>
+        /// Emergency fallback: force simulation to end and return to Setup.
+        /// Used by safety timeout when simulation gets stuck.
+        /// </summary>
+        private void ForceEndSimulation()
+        {
+            _isSimulating = false;
+            _pendingSplits = 0;
+            _safetyTimeoutTween?.Kill();
+            _safetyTimeoutTween = null;
+            _endDelayTween?.Kill(false);
+            _endDelayTween = null;
+
+            _bulletManager?.ReturnAllBullets();
+            _activeBullets.Clear();
+
+            RestoreGridFromSnapshot();
+
+            var sm = ServiceLocator.Get<GameStateManager>();
+            if (sm != null && sm.CurrentStateType == GameStateType.Simulating)
+                sm.ChangeState(GameStateType.Setup);
         }
 
         // ════════════════════════════════════════
@@ -257,20 +292,22 @@ namespace BulletRoute.Bullet
                     case StepType.BombExplode:
                         seq.AppendCallback(() => bullet.SetDirection(s.MoveDir));
                         seq.Append(bullet.MoveTo(s.WorldPos));
-                        seq.AppendCallback(() =>
-                        {
-                            if (s.Tile != null) s.Tile.AnimateBulletPass(s.EntryDir, s.ExitDir);
-                            if (s.Type == StepType.BombExplode) DestroyAdjacentBlocks(s.GridPos);
-                        });
+                        // Visual FX — isolated so exceptions don't block simulation
+                        seq.AppendCallback(() => SafeAnimateTile(s));
+                        // Bomb logic in separate callback
+                        if (s.Type == StepType.BombExplode)
+                            seq.AppendCallback(() => DestroyAdjacentBlocks(s.GridPos));
                         seq.AppendInterval(_stepDelay);
                         break;
 
                     case StepType.HitTarget:
                         seq.AppendCallback(() => bullet.SetDirection(s.MoveDir));
                         seq.Append(bullet.MoveTo(s.WorldPos));
+                        // Visual FX first — safe, can fail without breaking state
+                        seq.AppendCallback(() => SafeAnimateTile(s));
+                        // State management ALWAYS runs — separate callback
                         seq.AppendCallback(() =>
                         {
-                            if (s.Tile != null) s.Tile.AnimateBulletPass(s.EntryDir, s.ExitDir);
                             bullet.AnimateHitTarget();
                             OnTargetHit(s.GridPos);
                         });
@@ -279,9 +316,11 @@ namespace BulletRoute.Bullet
                     case StepType.Stop:
                         seq.AppendCallback(() => bullet.SetDirection(s.MoveDir));
                         seq.Append(bullet.MoveTo(s.WorldPos));
+                        // Visual FX first — safe
+                        seq.AppendCallback(() => SafeAnimateTile(s));
+                        // State management ALWAYS runs — separate callback
                         seq.AppendCallback(() =>
                         {
-                            if (s.Tile != null) s.Tile.AnimateBulletPass(s.EntryDir, s.ExitDir);
                             bullet.AnimateStop();
                             OnBulletStopped(s.GridPos, s.StopReason);
                         });
@@ -292,14 +331,19 @@ namespace BulletRoute.Bullet
                         seq.Append(bullet.MoveTo(s.WorldPos));
                         seq.AppendCallback(() =>
                         {
-                            if (s.Portal != null) s.Portal.AnimateTeleportIn();
-                            EventBus.Publish(new BulletTeleportedEvent
-                            { FromPortal = s.Portal.GridPosition, ToPortal = s.PairedPortal.GridPosition });
+                            try
+                            {
+                                if (s.Portal != null) s.Portal.AnimateTeleportIn();
+                                EventBus.Publish(new BulletTeleportedEvent
+                                { FromPortal = s.Portal.GridPosition, ToPortal = s.PairedPortal.GridPosition });
+                            }
+                            catch (System.Exception e) { Debug.LogError($"[AnimatePath] Teleport FX failed: {e.Message}"); }
                         });
                         seq.AppendCallback(() =>
                         {
                             bullet.AnimateTeleport(s.PortalExitWorldPos, null);
-                            if (s.PairedPortal != null) s.PairedPortal.AnimateTeleportOut();
+                            try { if (s.PairedPortal != null) s.PairedPortal.AnimateTeleportOut(); }
+                            catch (System.Exception e) { Debug.LogError($"[AnimatePath] TeleportOut FX failed: {e.Message}"); }
                         });
                         seq.AppendInterval(0.4f);
                         break;
@@ -312,6 +356,22 @@ namespace BulletRoute.Bullet
                         });
                         break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Safely call AnimateBulletPass on a tile.
+        /// Wrapped in try-catch so visual FX failures never block state management.
+        /// </summary>
+        private void SafeAnimateTile(PathStep s)
+        {
+            try
+            {
+                if (s.Tile != null) s.Tile.AnimateBulletPass(s.EntryDir, s.ExitDir);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[AnimatePath] AnimateBulletPass failed at ({s.GridPos.x},{s.GridPos.y}): {e.Message}");
             }
         }
 
@@ -527,6 +587,8 @@ namespace BulletRoute.Bullet
                 Debug.Log("[SimEnd] → WIN path");
                 _isSimulating = false;
                 _pendingSplits = 0;
+                _safetyTimeoutTween?.Kill();
+                _safetyTimeoutTween = null;
                 _endDelayTween?.Kill(false);
                 _endDelayTween = DOVirtual.DelayedCall(0.5f, () =>
                 {
@@ -575,6 +637,8 @@ namespace BulletRoute.Bullet
             Debug.Log("[SimEnd] → SETUP path (all bullets done, targets remaining)");
             _isSimulating = false;
             _pendingSplits = 0;
+            _safetyTimeoutTween?.Kill();
+            _safetyTimeoutTween = null;
             _endDelayTween?.Kill(false);
             _endDelayTween = DOVirtual.DelayedCall(0.3f, () =>
             {
