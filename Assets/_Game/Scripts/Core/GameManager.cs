@@ -33,6 +33,7 @@ namespace BulletRoute.Core
 
         private void Awake()
         {
+            Application.targetFrameRate = 60;
             DOTween.Init(true, true, LogBehaviour.ErrorsOnly)
                 .SetCapacity(_tweenCapacity, _sequenceCapacity);
             DOTween.defaultAutoPlay = AutoPlay.All;
