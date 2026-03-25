@@ -148,13 +148,23 @@ namespace BulletRoute.Bullet
             _endDelayTween?.Kill(false);
             _endDelayTween = null;
 
-            _bulletManager?.ReturnAllBullets();
-            _activeBullets.Clear();
+            try
+            {
+                _bulletManager?.ReturnAllBullets();
+                _activeBullets.Clear();
+                RestoreGridFromSnapshot();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[ForceEnd] Cleanup failed: {e}");
+                _activeBullets.Clear();
+                _destroyedBlocks.Clear();
+                _gridSnapshot.Clear();
+            }
 
-            RestoreGridFromSnapshot();
-
+            // ALWAYS transition to Setup
             var sm = ServiceLocator.Get<GameStateManager>();
-            if (sm != null && sm.CurrentStateType == GameStateType.Simulating)
+            if (sm != null)
                 sm.ChangeState(GameStateType.Setup);
         }
 
@@ -497,52 +507,67 @@ namespace BulletRoute.Bullet
             if (lm == null || tileFactory == null)
             {
                 Debug.LogError("[BulletSimulator] Cannot restore: LevelManager or TileFactory is null");
+                _destroyedBlocks.Clear();
+                _gridSnapshot.Clear();
                 return;
             }
 
             // 1. Re-create destroyed block tiles
             foreach (var block in _destroyedBlocks)
             {
-                // Only re-create if the cell is still empty
-                var existing = _gridManager.GetTile(block.GridPos);
-                if (existing != null) continue;
-
-                var newTile = tileFactory.CreateTile(block.Type, block.GridPos, block.Rotation, lm.TileParent);
-                if (newTile != null)
+                try
                 {
-                    _gridManager.SetTile(block.GridPos, newTile);
-                    // Animate block appearing
-                    var vis = newTile.VisualRoot != null ? newTile.VisualRoot : newTile.transform;
-                    vis.localScale = Vector3.zero;
-                    vis.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
+                    var existing = _gridManager.GetTile(block.GridPos);
+                    if (existing != null) continue;
 
-                    Debug.Log($"[Restore] Re-created Block at ({block.GridPos.x},{block.GridPos.y})");
+                    var newTile = tileFactory.CreateTile(block.Type, block.GridPos, block.Rotation, lm.TileParent);
+                    if (newTile != null)
+                    {
+                        _gridManager.SetTile(block.GridPos, newTile);
+                        var vis = newTile.VisualRoot != null ? newTile.VisualRoot : newTile.transform;
+                        vis.localScale = Vector3.zero;
+                        vis.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
+                        Debug.Log($"[Restore] Re-created Block at ({block.GridPos.x},{block.GridPos.y})");
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[Restore] Failed to re-create block at {block.GridPos}: {e.Message}");
                 }
             }
             _destroyedBlocks.Clear();
 
             // 2. Reset all bombs (exploded state + visual)
-            lm.ResetAllBombs();
+            try { lm.ResetAllBombs(); }
+            catch (System.Exception e) { Debug.LogError($"[Restore] ResetAllBombs failed: {e.Message}"); }
 
             // 3. Reset all targets (hit state + visual)
-            lm.ResetAllTargets();
+            try { lm.ResetAllTargets(); }
+            catch (System.Exception e) { Debug.LogError($"[Restore] ResetAllTargets failed: {e.Message}"); }
 
-            // 4. Reset visual scale for all remaining tiles
-            // (some tiles may have residual animation states from bullet pass)
+            // 4. Reset visual scale for all remaining tiles and restart idle animations
             foreach (var cell in _gridManager.GetAllCells())
             {
                 if (cell.TileInstance == null) continue;
-                // Skip targets and bombs - they have their own reset
                 if (cell.TileInstance is BombTile) continue;
                 if (cell.TileInstance.TileType == TileType.Target) continue;
 
-                var vis = cell.TileInstance.VisualRoot != null
-                    ? cell.TileInstance.VisualRoot
-                    : cell.TileInstance.transform;
+                try
+                {
+                    var tile = cell.TileInstance;
+                    var vis = tile.VisualRoot != null ? tile.VisualRoot : tile.transform;
 
-                // Kill any lingering tweens and ensure scale is correct
-                DOTween.Kill(vis);
-                vis.localScale = Vector3.one;
+                    // Only kill tweens if the transform is still valid
+                    if (vis != null)
+                    {
+                        DOTween.Kill(vis);
+                        vis.localScale = Vector3.one;
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[Restore] Failed to reset tile at {cell.Position}: {e.Message}");
+                }
             }
 
             _gridSnapshot.Clear();
@@ -594,19 +619,26 @@ namespace BulletRoute.Bullet
                 {
                     _endDelayTween = null;
                     Debug.Log("[SimEnd] WIN delayed callback fired → publishing LevelCompletedEvent");
-                    var lm = ServiceLocator.Get<LevelManager>();
-                    var timer = ServiceLocator.Get<LevelTimer>();
-                    int moves = lm != null ? lm.MoveCount : 0;
-                    int levelIdx = lm != null ? lm.CurrentLevelIndex : 0;
-                    float timeLeft = timer != null ? timer.TimeRemaining : 0f;
-                    float timeLimit = timer != null ? timer.TimeLimit : 0f;
-                    int stars = lm?.CurrentLevel != null ? lm.CurrentLevel.CalculateStarsByTime(timeLeft) : 1;
-                    Debug.Log($"[SimEnd] LevelCompleted: level={levelIdx} stars={stars} moves={moves}");
-                    EventBus.Publish(new LevelCompletedEvent
-                    { LevelIndex = levelIdx, Stars = stars, MoveCount = moves,
-                      TimeRemaining = timeLeft, TimeLimit = timeLimit });
+                    try
+                    {
+                        var lm = ServiceLocator.Get<LevelManager>();
+                        var timer = ServiceLocator.Get<LevelTimer>();
+                        int moves = lm != null ? lm.MoveCount : 0;
+                        int levelIdx = lm != null ? lm.CurrentLevelIndex : 0;
+                        float timeLeft = timer != null ? timer.TimeRemaining : 0f;
+                        float timeLimit = timer != null ? timer.TimeLimit : 0f;
+                        int stars = lm?.CurrentLevel != null ? lm.CurrentLevel.CalculateStarsByTime(timeLeft) : 1;
+                        Debug.Log($"[SimEnd] LevelCompleted: level={levelIdx} stars={stars} moves={moves}");
+                        EventBus.Publish(new LevelCompletedEvent
+                        { LevelIndex = levelIdx, Stars = stars, MoveCount = moves,
+                          TimeRemaining = timeLeft, TimeLimit = timeLimit });
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogError($"[SimEnd] WIN callback failed: {e}");
+                    }
 
-                    // Clear snapshot on win (no restore needed)
+                    // Always clear snapshot
                     _destroyedBlocks.Clear();
                     _gridSnapshot.Clear();
                 });
@@ -645,17 +677,27 @@ namespace BulletRoute.Bullet
                 _endDelayTween = null;
                 Debug.Log("[SimEnd] SETUP delayed callback fired → restore grid + ChangeState(Setup)");
 
-                // Cleanup bullets
-                _bulletManager?.ReturnAllBullets();
-                _activeBullets.Clear();
+                // Cleanup + restore wrapped in try-finally:
+                // ChangeState(Setup) MUST run even if cleanup throws
+                try
+                {
+                    _bulletManager?.ReturnAllBullets();
+                    _activeBullets.Clear();
+                    RestoreGridFromSnapshot();
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[SimEnd] MISS cleanup failed: {e}");
+                    // Emergency: clear state even on failure
+                    _activeBullets.Clear();
+                    _destroyedBlocks.Clear();
+                    _gridSnapshot.Clear();
+                }
 
-                // ── RESTORE GRID: re-create destroyed blocks, reset bombs & targets ──
-                RestoreGridFromSnapshot();
-
-                // Transition back to Setup
+                // ALWAYS transition to Setup — this is the critical line
                 var sm = ServiceLocator.Get<GameStateManager>();
                 Debug.Log($"[SimEnd] CurrentState={sm?.CurrentStateType}");
-                if (sm != null && sm.CurrentStateType == GameStateType.Simulating)
+                if (sm != null)
                     sm.ChangeState(GameStateType.Setup);
             });
         }
