@@ -190,8 +190,13 @@ namespace BulletRoute.UI
             float viewH = viewportRt.rect.height;
             if (contentH <= viewH) return;
 
-            float targetY = _startY + _currentLevel * _nodeSpacing;
-            float norm = Mathf.Clamp01(targetY / (contentH - viewH));
+            // Target: center the current level node in the viewport
+            float nodeY = _startY + _currentLevel * _nodeSpacing;
+            float scrollableRange = contentH - viewH;
+
+            // Offset so node sits at center of viewport (subtract half viewport height)
+            float targetScroll = nodeY - viewH * 0.5f;
+            float norm = Mathf.Clamp01(targetScroll / scrollableRange);
 
             DOTween.To(() => _scrollRect.verticalNormalizedPosition,
                 v => _scrollRect.verticalNormalizedPosition = v,
