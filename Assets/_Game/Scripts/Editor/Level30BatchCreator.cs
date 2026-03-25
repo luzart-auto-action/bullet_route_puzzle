@@ -139,13 +139,12 @@ namespace BulletRoute.Editor
         // ════════ MEDIUM 6x6/7x7 (11-15) ════════
 
         // 11: Staircase 3 corners. R→S→C(2,0)[rot3]→S→S→C(2,3)[rot1]→S→C(4,3)[rot3]→S→C(4,5)[rot1]→Tg(5,5)
+        // 11: L-Shape. R→S→S→C(3,1)[solve:rot0 R→Up]→S→S→Tg(3,4)
         static LevelData L11(string f) {
-            var d = MK(f,10,"Staircase",6,6,65,42,20);
-            d.Turrets.Add(Tu(0,0,Direction.Right)); d.Targets.Add(Tg(5,5));
-            S(d,1,0,1,true); C(d,2,0,2,false);
-            S(d,2,1,0,true); S(d,2,2,0,true); C(d,2,3,3,false);
-            S(d,3,3,1,true); C(d,4,3,0,false);
-            S(d,4,4,0,true); C(d,4,5,3,false);
+            var d = MK(f,10,"L-Shape",6,6,70,45,25);
+            d.Turrets.Add(Tu(0,1,Direction.Right)); d.Targets.Add(Tg(3,4));
+            S(d,1,1,1,true); S(d,2,1,1,true); C(d,3,1,0,false);
+            S(d,3,2,0,true); S(d,3,3,0,true);
             return d;
         }
         // 12: Mirror bounce. R→S→Mi(2,5)[rot0:R→D]→S→S→S→Mi(2,1)[rot0:D→R]→S[solve:rot1]→S→Mi(5,1)[rot0:R→D]→Tg(5,0)

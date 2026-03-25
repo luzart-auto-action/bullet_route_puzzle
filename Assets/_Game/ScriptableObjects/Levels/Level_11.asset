@@ -13,13 +13,13 @@ MonoBehaviour:
   m_Name: Level_11
   m_EditorClassIdentifier: 
   LevelIndex: 10
-  LevelName: Staircase
+  LevelName: L-Shape
   WorldIndex: 0
   GridWidth: 6
   GridHeight: 6
-  TimeLimit: 65
-  ThreeStarTime: 42
-  TwoStarTime: 20
+  TimeLimit: 70
+  ThreeStarTime: 45
+  TwoStarTime: 25
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
