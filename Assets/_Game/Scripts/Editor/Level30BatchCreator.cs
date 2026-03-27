@@ -58,7 +58,7 @@ namespace BulletRoute.Editor
 
         // ════════ EASY 5x5 (1-5) — Must think from L2 ════════
 
-        // 1: Tutorial — 1 straight at wrong rotation, player must rotate it
+        // 1: Tutorial ROTATE — 1 straight at wrong rotation, player must rotate it
         // R→S(1,2)locked→S(2,2)[solve:rot0→rot1]→S(3,2)locked→Tg(4,2)
         static LevelData L01(string f) {
             var d = MK(f,0,"First Steps",5,5,90,70,40);
@@ -66,12 +66,14 @@ namespace BulletRoute.Editor
             S(d,1,2,1,true); S(d,2,2,0,false); S(d,3,2,1,true);
             return d;
         }
-        // 2: L-shape detour. 3 unlocked tiles (2 corners + 1 straight), must figure out the path.
-        // R→S(1,0)locked→C(2,0)[solve:rot0]→S(2,1)[solve:rot0]→C(2,2)[solve:rot0 U→R]→S(3,2)locked→Tg(4,2)
+        // 2: Tutorial SWAP — Straight at wrong POSITION, must drag it into the gap.
+        // Path: R→S(1,2)locked→[empty(2,2)]→S(3,2)locked→Tg(4,2)
+        // S(2,0) unlocked at rot1: drag to (2,2) to fill gap. Already correct rotation.
         static LevelData L02(string f) {
-            var d = MK(f,1,"Detour",5,5,85,60,35);
-            d.Turrets.Add(Tu(0,0,Direction.Right)); d.Targets.Add(Tg(4,2));
-            S(d,1,0,1,true); C(d,2,0,2,false); S(d,2,1,1,false); C(d,2,2,1,false); S(d,3,2,1,true);
+            var d = MK(f,1,"Swap Intro",5,5,90,65,35);
+            d.Turrets.Add(Tu(0,2,Direction.Right)); d.Targets.Add(Tg(4,2));
+            S(d,1,2,1,true); S(d,3,2,1,true);
+            S(d,2,0,1,false); // drag this to (2,2)
             return d;
         }
         // 3: Zigzag with traps. 2 corners unlocked, absorb + block traps punish wrong rotation.

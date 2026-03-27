@@ -9,13 +9,16 @@ using BulletRoute.Grid;
 namespace BulletRoute.UI
 {
     /// <summary>
-    /// Self-contained tutorial for Level 1. Automatically shows on first play.
-    /// Creates its own UI overlay — just add this component to any GameObject in the scene.
-    /// Saves completion to PlayerPrefs so it only shows once.
+    /// Self-contained tutorial system.
+    /// Level 1 (index 0): teaches ROTATION — tap to rotate pipes.
+    /// Level 2 (index 1): teaches SWAP — drag tiles to empty cells.
+    /// Saves completion per level to PlayerPrefs so each tutorial shows only once.
     /// </summary>
     public class TutorialManager : MonoBehaviour
     {
         private const string PREF_KEY = "BulletRoute_TutorialComplete";
+        private const string PREF_KEY_SWAP = "BulletRoute_SwapTutorialComplete";
+        private int _tutorialLevelIndex = -1; // which level's tutorial is active
 
         [Header("Settings")]
         [SerializeField] private float _typingSpeed = 0.03f;
@@ -74,7 +77,10 @@ namespace BulletRoute.UI
             if (_waitingForTap && UnityEngine.Input.GetMouseButtonDown(0))
             {
                 _waitingForTap = false;
-                NextStep();
+                if (_tutorialLevelIndex == 1)
+                    NextSwapStep();
+                else
+                    NextStep();
             }
         }
 
@@ -84,18 +90,34 @@ namespace BulletRoute.UI
 
         private void OnLevelStarted(LevelStartedEvent evt)
         {
-            // Only show tutorial for Level 1 (index 0) and if not completed
-            if (evt.LevelIndex != 0) return;
-            if (PlayerPrefs.GetInt(PREF_KEY, 0) == 1) return;
+            // Level 1 (index 0): Rotate tutorial
+            if (evt.LevelIndex == 0 && PlayerPrefs.GetInt(PREF_KEY, 0) == 0)
+            {
+                _tutorialLevelIndex = 0;
+                DOVirtual.DelayedCall(0.8f, () => StartTutorial());
+                return;
+            }
 
-            // Small delay to let the level appear first
-            DOVirtual.DelayedCall(0.8f, () => StartTutorial());
+            // Level 2 (index 1): Swap tutorial
+            if (evt.LevelIndex == 1 && PlayerPrefs.GetInt(PREF_KEY_SWAP, 0) == 0)
+            {
+                _tutorialLevelIndex = 1;
+                DOVirtual.DelayedCall(0.8f, () => StartSwapTutorial());
+                return;
+            }
         }
 
         private void OnFirePressed(PlayButtonPressedEvent evt)
         {
             if (!_isActive || !_waitingForFire) return;
             _waitingForFire = false;
+            _waitingForSwap = false;
+
+            // Stop instruction pulse
+            DOTween.Kill(_instructionPanel);
+            if (_instructionPanel != null)
+                _instructionPanel.localScale = Vector3.one;
+
             ShowStep_BulletFlying();
         }
 
@@ -229,9 +251,98 @@ namespace BulletRoute.UI
         private void CompleteTutorial()
         {
             _isActive = false;
-            PlayerPrefs.SetInt(PREF_KEY, 1);
+            if (_tutorialLevelIndex == 0)
+                PlayerPrefs.SetInt(PREF_KEY, 1);
+            else if (_tutorialLevelIndex == 1)
+                PlayerPrefs.SetInt(PREF_KEY_SWAP, 1);
             PlayerPrefs.Save();
+            _tutorialLevelIndex = -1;
             Cleanup();
+        }
+
+        // ════════════════════════════════════════
+        //  SWAP TUTORIAL (Level 2)
+        // ════════════════════════════════════════
+
+        private int _swapStep;
+        private bool _waitingForSwap;
+
+        private void StartSwapTutorial()
+        {
+            _isActive = true;
+            _swapStep = 0;
+            CreateUI();
+            ShowSwapStep_Welcome();
+        }
+
+        private void ShowSwapStep_Welcome()
+        {
+            ShowOverlay(true);
+            HidePointer();
+            TypeInstruction("You already know how to ROTATE tiles.\n\nNow learn to DRAG & DROP them!");
+            ShowTapPrompt("Tap to continue");
+            _waitingForTap = true;
+            _swapStep = 0;
+        }
+
+        private void NextSwapStep()
+        {
+            _swapStep++;
+            switch (_swapStep)
+            {
+                case 1: ShowSwapStep_Gap(); break;
+                case 2: ShowSwapStep_Tile(); break;
+                case 3: ShowSwapStep_DragIt(); break;
+                default: CompleteTutorial(); break;
+            }
+        }
+
+        // ── Show the gap in the path ──
+        private void ShowSwapStep_Gap()
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) { NextSwapStep(); return; }
+
+            // Point to the empty cell (2,2) where tile is missing
+            Vector3 gapWorld = gridManager.GridToWorldPosition(new Vector2Int(2, 2));
+            PointAt(gapWorld);
+            TypeInstruction("See the GAP in the path?\n\nThe bullet can't reach the target without it.");
+            ShowTapPrompt("Tap to continue");
+            _waitingForTap = true;
+        }
+
+        // ── Show the misplaced tile ──
+        private void ShowSwapStep_Tile()
+        {
+            var gridManager = ServiceLocator.Get<GridManager>();
+            if (gridManager == null) { NextSwapStep(); return; }
+
+            // Point to the tile at (2,0) that needs to be dragged
+            Vector3 tileWorld = gridManager.GridToWorldPosition(new Vector2Int(2, 0));
+            PointAt(tileWorld);
+            TypeInstruction("This pipe is in the WRONG position!\n\nDRAG it to the empty gap to complete the path.");
+            ShowTapPrompt("Tap to continue");
+            _waitingForTap = true;
+        }
+
+        // ── Let player drag ──
+        private void ShowSwapStep_DragIt()
+        {
+            ShowOverlay(false); // hide overlay so player can interact
+            HidePointer();
+            TypeInstruction("Now DRAG the pipe to the gap,\nthen press FIRE!");
+            HideTapPrompt();
+            _waitingForSwap = true;
+            _waitingForFire = true;
+
+            // Pulse instruction
+            if (_instructionPanel != null)
+            {
+                _instructionPanel.DOScale(1.05f, 0.5f)
+                    .SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo)
+                    .SetUpdate(true);
+            }
         }
 
         // ════════════════════════════════════════
@@ -430,6 +541,7 @@ namespace BulletRoute.UI
         public void ResetTutorial()
         {
             PlayerPrefs.DeleteKey(PREF_KEY);
+            PlayerPrefs.DeleteKey(PREF_KEY_SWAP);
             PlayerPrefs.Save();
         }
     }
