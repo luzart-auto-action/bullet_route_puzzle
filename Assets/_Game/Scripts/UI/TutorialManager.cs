@@ -376,8 +376,8 @@ namespace BulletRoute.UI
             panelGo.transform.SetParent(canvasGo.transform, false);
             _instructionPanel = panelGo.GetComponent<RectTransform>();
             if (_instructionPanel == null) _instructionPanel = panelGo.AddComponent<RectTransform>();
-            _instructionPanel.anchorMin = new Vector2(0.05f, 0.02f);
-            _instructionPanel.anchorMax = new Vector2(0.95f, 0.22f);
+            _instructionPanel.anchorMin = new Vector2(0.2f, 0.02f);
+            _instructionPanel.anchorMax = new Vector2(0.8f, 0.22f);
             _instructionPanel.offsetMin = Vector2.zero;
             _instructionPanel.offsetMax = Vector2.zero;
             var panelBg = panelGo.AddComponent<Image>();

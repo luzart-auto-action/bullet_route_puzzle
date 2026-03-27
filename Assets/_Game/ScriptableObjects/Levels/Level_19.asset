@@ -11,65 +11,45 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 219a2d69a01ef654a8e8f237fd9e4465, type: 3}
   m_Name: Level_19
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   LevelIndex: 18
-  LevelName: Bomb Maze
+  LevelName: Portal Hell
   WorldIndex: 0
-  GridWidth: 7
-  GridHeight: 7
-  TimeLimit: 55
-  ThreeStarTime: 33
-  TwoStarTime: 18
+  GridWidth: 8
+  GridHeight: 8
+  TimeLimit: 45
+  ThreeStarTime: 16
+  TwoStarTime: 7
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
   Tiles:
-  - Position: {x: 1, y: 3}
+  - Position: {x: 1, y: 4}
     Type: 1
-    Rotation: 1
-    IsLocked: 1
+    Rotation: 0
+    IsLocked: 0
     ExtraData: 0
-  - Position: {x: 2, y: 3}
-    Type: 8
+  - Position: {x: 2, y: 4}
+    Type: 7
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 1
+  - Position: {x: 3, y: 4}
+    Type: 4
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
   - Position: {x: 3, y: 3}
-    Type: 1
-    Rotation: 0
-    IsLocked: 0
-    ExtraData: 0
-  - Position: {x: 4, y: 3}
-    Type: 1
-    Rotation: 1
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 5, y: 3}
-    Type: 2
-    Rotation: 2
-    IsLocked: 0
-    ExtraData: 0
-  - Position: {x: 5, y: 4}
-    Type: 1
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 5, y: 5}
-    Type: 1
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 2, y: 4}
     Type: 4
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 2, y: 2}
+  - Position: {x: 3, y: 2}
     Type: 4
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 3, y: 4}
+  - Position: {x: 3, y: 1}
     Type: 4
     Rotation: 0
     IsLocked: 1
@@ -79,8 +59,173 @@ MonoBehaviour:
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
+  - Position: {x: 5, y: 1}
+    Type: 7
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 1
+  - Position: {x: 6, y: 1}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 7, y: 1}
+    Type: 7
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 2
+  - Position: {x: 4, y: 6}
+    Type: 7
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 2
+  - Position: {x: 5, y: 6}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 6, y: 6}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 7, y: 6}
+    Type: 2
+    Rotation: 2
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 0, y: 0}
+    Type: 2
+    Rotation: 1
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 1, y: 0}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 2, y: 0}
+    Type: 2
+    Rotation: 2
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 4, y: 0}
+    Type: 1
+    Rotation: 1
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 6, y: 0}
+    Type: 2
+    Rotation: 3
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 0, y: 7}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 1, y: 7}
+    Type: 2
+    Rotation: 1
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 2, y: 7}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 3, y: 7}
+    Type: 2
+    Rotation: 2
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 5, y: 7}
+    Type: 1
+    Rotation: 1
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 0, y: 2}
+    Type: 2
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 1, y: 2}
+    Type: 1
+    Rotation: 1
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 2, y: 2}
+    Type: 2
+    Rotation: 3
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 0, y: 6}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 1, y: 6}
+    Type: 2
+    Rotation: 1
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 4, y: 2}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 5, y: 3}
+    Type: 2
+    Rotation: 2
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 6, y: 3}
+    Type: 1
+    Rotation: 1
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 7, y: 3}
+    Type: 2
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 5, y: 2}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 6, y: 2}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 5, y: 4}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 6, y: 4}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 5}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 3, y: 6}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 6}
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
   Turrets:
-  - Position: {x: 0, y: 3}
+  - Position: {x: 0, y: 4}
     FireDirection: 1
   Targets:
-  - Position: {x: 5, y: 6}
+  - Position: {x: 7, y: 7}
