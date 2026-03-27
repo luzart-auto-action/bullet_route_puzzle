@@ -46,9 +46,6 @@ namespace BulletRoute.Tile
             var target = _visualRoot != null ? _visualRoot : transform;
             DOTween.Kill(target);
             target.localScale = Vector3.one;
-
-            // Restart idle animation
-            StartIdleAnimation();
         }
 
         private void AnimateExplosion()

@@ -32,12 +32,9 @@ namespace BulletRoute.Tile
         [SerializeField] protected float _selectScaleMultiplier = 1.15f;
         [SerializeField] protected float _selectDuration = 0.15f;
         [SerializeField] protected float _hoverBounceIntensity = 0.05f;
-        [SerializeField] protected float _idlePulseDuration = 2f;
-        [SerializeField] protected float _idlePulseScale = 0.02f;
 
         protected int _rotationState; // 0=Up, 1=Right, 2=Down, 3=Left
         protected Tween _currentRotateTween;
-        protected Tween _idleTween;
         protected Sequence _bulletPassSequence;
 
         public TileType TileType => _tileType;
@@ -53,7 +50,6 @@ namespace BulletRoute.Tile
         {
             if (_visualRoot == null) _visualRoot = transform;
             CreateFXSpawnPoints();
-            StartIdleAnimation();
         }
 
         private void CreateFXSpawnPoints()
@@ -150,15 +146,13 @@ namespace BulletRoute.Tile
         public virtual void AnimateSelect()
         {
             var target = _visualRoot != null ? _visualRoot : transform;
-            _idleTween?.Kill();
             target.DOScale(Vector3.one * _selectScaleMultiplier, _selectDuration).SetEase(Ease.OutBack);
         }
 
         public virtual void AnimateDeselect()
         {
             var target = _visualRoot != null ? _visualRoot : transform;
-            target.DOScale(Vector3.one, _selectDuration).SetEase(Ease.InBack)
-                .OnComplete(() => StartIdleAnimation());
+            target.DOScale(Vector3.one, _selectDuration).SetEase(Ease.InBack);
         }
 
         // === Swap Animation ===
@@ -186,16 +180,6 @@ namespace BulletRoute.Tile
             });
         }
 
-        // === Idle Animation ===
-        protected virtual void StartIdleAnimation()
-        {
-            _idleTween?.Kill();
-            var target = _visualRoot != null ? _visualRoot : transform;
-            _idleTween = target.DOScale(Vector3.one * (1f + _idlePulseScale), _idlePulseDuration)
-                .SetEase(Ease.InOutSine)
-                .SetLoops(-1, LoopType.Yoyo);
-        }
-
         // === Highlight Animation (for hints) ===
         public virtual void AnimateHighlight(bool on)
         {
@@ -208,7 +192,6 @@ namespace BulletRoute.Tile
             {
                 DOTween.Kill(target);
                 target.DOScale(Vector3.one, 0.2f);
-                StartIdleAnimation();
             }
         }
 
@@ -229,7 +212,6 @@ namespace BulletRoute.Tile
         protected virtual void OnDestroy()
         {
             _currentRotateTween?.Kill();
-            _idleTween?.Kill();
             _bulletPassSequence?.Kill();
         }
     }

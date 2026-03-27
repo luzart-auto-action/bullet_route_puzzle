@@ -19,7 +19,7 @@ namespace BulletRoute.Grid
         [SerializeField] private Ease _cellAppearEase = Ease.OutBack;
 
         [Header("Cell Background")]
-        [SerializeField] private Color _cellBgColor = new Color(0.15f, 0.15f, 0.2f, 1f);
+        //[SerializeField] private Color _cellBgColor = new Color(0.15f, 0.15f, 0.2f, 1f);
         [SerializeField] private Material _cellBgMaterial;
 
         private GridCell[,] _cells;
@@ -53,7 +53,7 @@ namespace BulletRoute.Grid
             // Use the assigned material; if none, log error instead of crashing
             if (_cellBgMaterial == null)
             {
-                Debug.LogError("[GridManager] _cellBgMaterial is not assigned! Assign a material in Inspector.");
+                //Debug.LogError("[GridManager] _cellBgMaterial is not assigned! Assign a material in Inspector.");
             }
 
             for (int x = 0; x < width; x++)
@@ -100,22 +100,23 @@ namespace BulletRoute.Grid
             }
             seq.OnComplete(() => onComplete?.Invoke());
         }
-
+        public GameObject spawnerPrefab;
         private void CreateCellBackground(GridCell cell)
         {
-            var bg = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            var bg = Instantiate(spawnerPrefab,this.transform);
             bg.name = $"CellBg_{cell.Position.x}_{cell.Position.y}";
+            bg.SetActive(true);
 
             // Remove collider so it doesn't block raycast
             var col = bg.GetComponent<MeshCollider>();
             if (col != null) Destroy(col);
 
             bg.transform.SetParent(_gridParent != null ? _gridParent : transform, false);
-            bg.transform.position = cell.WorldPosition + Vector3.down * 0.01f;
+            bg.transform.position = cell.WorldPosition + Vector3.down * 0.05f;
             bg.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             bg.transform.localScale = new Vector3(_cellSize, _cellSize, 1f);
 
-            var renderer = bg.GetComponent<Renderer>();
+            var renderer = bg.GetComponent<Renderer>() == null ? bg.GetComponentInChildren<Renderer>() : bg.GetComponent<Renderer>();
             if (_cellBgMaterial != null)
                 renderer.material = _cellBgMaterial;
 

@@ -30,9 +30,8 @@ namespace BulletRoute.UI
         [SerializeField] private float _zigzagOffset = 70f;
         [SerializeField] private float _startY = 100f;
 
-        [Header("Road")]
-        [SerializeField] private Color _roadColor = new Color(0.2f, 0.35f, 0.6f, 0.8f);
-        [SerializeField] private float _roadWidth = 12f;
+        [Header("Road Prefab — Image prefab spawned between nodes")]
+        [SerializeField] private RectTransform _roadPrefab;
 
         private List<LevelNodeUI> _spawnedNodes = new List<LevelNodeUI>();
         private int _currentLevel;
@@ -151,26 +150,25 @@ namespace BulletRoute.UI
 
         private void SpawnRoad(float x1, float y1, float x2, float y2)
         {
-            var roadGo = new GameObject("Road");
-            roadGo.transform.SetParent(_levelPathContainer, false);
-            var img = roadGo.AddComponent<Image>();
-            img.color = _roadColor;
-            img.raycastTarget = false;
+            if (_roadPrefab == null) return;
 
-            var rt = roadGo.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0);
-            rt.anchorMax = new Vector2(0.5f, 0);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = new Vector2((x1 + x2) * 0.5f, (y1 + y2) * 0.5f);
+            var road = Instantiate(_roadPrefab, _levelPathContainer);
+            road.name = "Road";
+            road.gameObject.SetActive(true);
+
+            road.anchorMin = new Vector2(0.5f, 0);
+            road.anchorMax = new Vector2(0.5f, 0);
+            road.pivot = new Vector2(0.5f, 0.5f);
+            road.anchoredPosition = new Vector2((x1 + x2) * 0.5f, (y1 + y2) * 0.5f);
 
             float dist = Vector2.Distance(new Vector2(x1, y1), new Vector2(x2, y2));
-            rt.sizeDelta = new Vector2(_roadWidth, dist);
+            road.sizeDelta = new Vector2(road.sizeDelta.x, dist);
 
             float angle = Mathf.Atan2(x2 - x1, y2 - y1) * Mathf.Rad2Deg;
-            rt.localRotation = Quaternion.Euler(0, 0, -angle);
+            road.localRotation = Quaternion.Euler(0, 0, -angle);
 
             // Road behind nodes
-            roadGo.transform.SetAsFirstSibling();
+            road.SetAsFirstSibling();
         }
 
         // ════════════════════════════════════════

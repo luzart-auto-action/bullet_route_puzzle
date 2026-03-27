@@ -163,8 +163,6 @@ MonoBehaviour:
   _selectScaleMultiplier: 1.15
   _selectDuration: 0.15
   _hoverBounceIntensity: 0.05
-  _idlePulseDuration: 2
-  _idlePulseScale: 0.02
   _fireDirection: 1
   _barrel: {fileID: 9152399879816230461}
   _muzzlePoint: {fileID: 7099967484570677279}
@@ -449,15 +447,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4337945171637842, guid: 3a0728c3797e5443c8399a1555676d36, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.6
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: 4337945171637842, guid: 3a0728c3797e5443c8399a1555676d36, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.6
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: 4337945171637842, guid: 3a0728c3797e5443c8399a1555676d36, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.6
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: 4337945171637842, guid: 3a0728c3797e5443c8399a1555676d36, type: 3}
       propertyPath: m_LocalPosition.x
