@@ -154,9 +154,10 @@ namespace BulletRoute.Input
                 if (targetPos != _selectedGridPos && _gridManager.IsValidPosition(targetPos))
                 {
                     var targetTile = _gridManager.GetTile(targetPos);
-                    if (targetTile != null && !targetTile.IsLocked)
+                    // Allow drop if target is empty OR target tile is not locked
+                    if (targetTile == null || !targetTile.IsLocked)
                     {
-                        // Execute swap
+                        // Execute swap (works for both swap-with-tile and move-to-empty)
                         var command = new SwapTilesCommand(_gridManager, _selectedGridPos, targetPos);
                         _levelManager.CommandManager.ExecuteCommand(command);
 
