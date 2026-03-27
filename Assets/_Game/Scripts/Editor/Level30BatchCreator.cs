@@ -56,61 +56,79 @@ namespace BulletRoute.Editor
             }
         }
 
-        // ════════ EASY 5x5 (1-5) ════════
+        // ════════ EASY 5x5 (1-5) — Must think from L2 ════════
 
-        // 1: Tutorial — straight line, all locked
+        // 1: Tutorial — 1 straight at wrong rotation, player must rotate it
+        // R→S(1,2)locked→S(2,2)[solve:rot0→rot1]→S(3,2)locked→Tg(4,2)
         static LevelData L01(string f) {
             var d = MK(f,0,"First Steps",5,5,90,70,40);
             d.Turrets.Add(Tu(0,2,Direction.Right)); d.Targets.Add(Tg(4,2));
-            S(d,1,2,1,true); S(d,2,2,1,true); S(d,3,2,1,true);
+            S(d,1,2,1,true); S(d,2,2,0,false); S(d,3,2,1,true);
             return d;
         }
-        // 2: One corner. R→S(1,2)→C(2,2)[solve:rot3 R→Up]→S(2,3)→Tg(2,4)
+        // 2: L-shape detour. 3 unlocked tiles (2 corners + 1 straight), must figure out the path.
+        // R→S(1,0)locked→C(2,0)[solve:rot0]→S(2,1)[solve:rot0]→C(2,2)[solve:rot0 U→R]→S(3,2)locked→Tg(4,2)
         static LevelData L02(string f) {
-            var d = MK(f,1,"First Turn",5,5,90,65,35);
-            d.Turrets.Add(Tu(0,2,Direction.Right)); d.Targets.Add(Tg(2,4));
-            S(d,1,2,1,true); C(d,2,2,1,false); S(d,2,3,0,true);
-            return d;
-        }
-        // 3: S-Curve. R→S→C(2,0)[rot3]→S→C(2,2)[rot1]→S→Tg
-        static LevelData L03(string f) {
-            var d = MK(f,2,"S-Curve",5,5,85,60,30);
+            var d = MK(f,1,"Detour",5,5,85,60,35);
             d.Turrets.Add(Tu(0,0,Direction.Right)); d.Targets.Add(Tg(4,2));
-            S(d,1,0,1,true); C(d,2,0,0,false); S(d,2,1,0,true); C(d,2,2,2,false); S(d,3,2,1,true);
+            S(d,1,0,1,true); C(d,2,0,2,false); S(d,2,1,1,false); C(d,2,2,1,false); S(d,3,2,1,true);
             return d;
         }
-        // 4: Mirror. Down→S(2,3)→Mi(2,2)[rot0:D→R]→S(3,2)[solve:rot1]→Tg(4,2)
+        // 3: Zigzag with traps. 2 corners unlocked, absorb + block traps punish wrong rotation.
+        // R→C(1,4)[solve:rot1 R→D]→S(1,3)locked→C(1,2)[solve:rot2 D→L]→Tg(0,2)
+        // Traps: Absorb(2,4), Block(0,3), Absorb(1,1)
+        static LevelData L03(string f) {
+            var d = MK(f,2,"Zigzag",5,5,85,55,30);
+            d.Turrets.Add(Tu(0,4,Direction.Right)); d.Targets.Add(Tg(0,2));
+            C(d,1,4,3,false); S(d,1,3,0,true); C(d,1,2,0,false);
+            Ab(d,2,4); Bl(d,0,3); Ab(d,1,1);
+            return d;
+        }
+        // 4: Drag & Solve — Corner at wrong POSITION. Must drag to (2,2) and rotate.
+        // R→S(1,2)locked→[empty(2,2)]→S(2,3)locked→Tg(2,4)
+        // Corner at (3,0) unlocked: drag to (2,2), rotate to R→U. Decoy S(3,2) + Block(4,2) trap.
         static LevelData L04(string f) {
-            var d = MK(f,3,"Reflection",5,5,85,60,30);
-            d.Turrets.Add(Tu(2,4,Direction.Down)); d.Targets.Add(Tg(4,2));
-            S(d,2,3,0,true); Mi(d,2,2,0,true); S(d,3,2,0,false);
+            var d = MK(f,3,"Drag & Solve",5,5,85,55,30);
+            d.Turrets.Add(Tu(0,2,Direction.Right)); d.Targets.Add(Tg(2,4));
+            S(d,1,2,1,true); S(d,2,3,0,true);
+            C(d,3,0,2,false); // must drag to (2,2) and rotate
+            S(d,3,2,1,false); Bl(d,4,2); // decoy path → block
             return d;
         }
-        // 5: Splitter. Up→S(2,1)→Sp(2,2)→R:S(3,2)→Tg(4,2) + L:S(1,2)[solve:rot1]→Tg(0,2)
+        // 5: Split Choice — Splitter + 4 corners (all unlocked at wrong rotation), 2 targets.
+        // Up→S(2,1)locked→Sp(2,2)→L+R
+        // L: C(1,2)[solve:rot3 L→U]→S(1,3)locked→C(1,4)[solve:rot3 U→L]→Tg(0,4)
+        // R: C(3,2)[solve:rot0 R→U]→S(3,3)locked→C(3,4)[solve:rot0 U→R]→Tg(4,4)
         static LevelData L05(string f) {
-            var d = MK(f,4,"Fork",5,5,80,55,25);
-            d.Turrets.Add(Tu(2,0,Direction.Up)); d.Targets.Add(Tg(4,2)); d.Targets.Add(Tg(0,2));
-            S(d,2,1,0,true); Sp(d,2,2,true); S(d,3,2,1,true); S(d,1,2,0,false);
+            var d = MK(f,4,"Split Choice",5,5,80,50,28);
+            d.Turrets.Add(Tu(2,0,Direction.Up)); d.Targets.Add(Tg(0,4)); d.Targets.Add(Tg(4,4));
+            S(d,2,1,0,true); Sp(d,2,2,true);
+            C(d,1,2,1,false); S(d,1,3,0,true); C(d,1,4,2,false);
+            C(d,3,2,2,false); S(d,3,3,0,true); C(d,3,4,3,false);
             return d;
         }
 
         // ════════ MEDIUM-EASY 5x5/6x6 (6-10) ════════
 
-        // 6: Block detour. R→C(1,2)[solve:rot3 R→Up]→S→C(1,4)[solve:rot1 Up→R]→S→S→C(4,4)[solve:rot2 R→Down]→S→Tg
+        // 6: Fork Road — Splitter + 2 targets, 2 unlocked tiles.
+        // Up→S(2,1)locked→Sp(2,2)→L+R
+        // L: S(1,2)[solve:rot1]→Tg(0,2)
+        // R: C(3,2)[solve:rot0 R→U]→S(3,3)locked→Tg(3,4)
         static LevelData L06(string f) {
-            var d = MK(f,5,"Detour",5,5,80,52,25);
-            d.Turrets.Add(Tu(0,2,Direction.Right)); d.Targets.Add(Tg(4,2));
-            Bl(d,2,2); Bl(d,3,2);
-            C(d,1,2,0,false); S(d,1,3,0,true); C(d,1,4,0,false);
-            S(d,2,4,1,true); S(d,3,4,1,true);
-            C(d,4,4,2,true); S(d,4,3,0,true); // LOCKED at rot2 for testing — R→Down
+            var d = MK(f,5,"Fork Road",5,5,80,55,30);
+            d.Turrets.Add(Tu(2,0,Direction.Up)); d.Targets.Add(Tg(0,2)); d.Targets.Add(Tg(3,4));
+            S(d,2,1,0,true); Sp(d,2,2,true); S(d,1,2,0,false); C(d,3,2,3,false); S(d,3,3,0,true);
             return d;
         }
-        // 7: Portal jump. R→S(1,2)[solve:rot1]→Po(2,2)→...→Po(4,2)→Tg(5,2)
+        // 7: Block Bypass — Route around block wall using corner.
+        // R→S(1,1)locked→S(2,1)locked→C(3,1)[solve:rot0 R→U]→S(3,2)locked→S(3,3)locked→Tg(3,4)
+        // Blocks at (4,1)(4,2) prevent going right
         static LevelData L07(string f) {
-            var d = MK(f,6,"Portal Jump",6,5,75,50,25);
-            d.Turrets.Add(Tu(0,2,Direction.Right)); d.Targets.Add(Tg(5,2));
-            S(d,1,2,0,false); Po(d,2,2,0,true); Bl(d,3,2); Po(d,4,2,0,true);
+            var d = MK(f,6,"Block Bypass",6,5,75,50,28);
+            d.Turrets.Add(Tu(0,1,Direction.Right)); d.Targets.Add(Tg(3,4));
+            S(d,1,1,1,true); S(d,2,1,1,true); C(d,3,1,2,false);
+            S(d,3,2,0,true); S(d,3,3,0,true);
+            Bl(d,4,1); Bl(d,4,2);
             return d;
         }
         // 8: Cross — 2 turrets share intersection
