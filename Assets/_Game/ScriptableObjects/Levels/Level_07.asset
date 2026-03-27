@@ -11,41 +11,56 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 219a2d69a01ef654a8e8f237fd9e4465, type: 3}
   m_Name: Level_07
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   LevelIndex: 6
-  LevelName: Portal Jump
+  LevelName: Block Bypass
   WorldIndex: 0
   GridWidth: 6
   GridHeight: 5
   TimeLimit: 75
   ThreeStarTime: 50
-  TwoStarTime: 25
+  TwoStarTime: 28
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
   Tiles:
-  - Position: {x: 1, y: 2}
+  - Position: {x: 1, y: 1}
     Type: 1
-    Rotation: 0
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 1}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 3, y: 1}
+    Type: 2
+    Rotation: 2
     IsLocked: 0
     ExtraData: 0
-  - Position: {x: 2, y: 2}
-    Type: 7
+  - Position: {x: 3, y: 2}
+    Type: 1
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 3, y: 2}
+  - Position: {x: 3, y: 3}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 1}
     Type: 4
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
   - Position: {x: 4, y: 2}
-    Type: 7
+    Type: 4
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
   Turrets:
-  - Position: {x: 0, y: 2}
+  - Position: {x: 0, y: 1}
     FireDirection: 1
   Targets:
-  - Position: {x: 5, y: 2}
+  - Position: {x: 3, y: 4}

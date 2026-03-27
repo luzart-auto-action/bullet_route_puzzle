@@ -11,15 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 219a2d69a01ef654a8e8f237fd9e4465, type: 3}
   m_Name: Level_08
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   LevelIndex: 7
   LevelName: Crossroads
   WorldIndex: 0
-  GridWidth: 5
-  GridHeight: 5
+  GridWidth: 6
+  GridHeight: 6
   TimeLimit: 75
   ThreeStarTime: 50
-  TwoStarTime: 25
+  TwoStarTime: 28
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
@@ -35,25 +35,27 @@ MonoBehaviour:
     IsLocked: 1
     ExtraData: 0
   - Position: {x: 3, y: 2}
-    Type: 1
-    Rotation: 0
+    Type: 2
+    Rotation: 2
     IsLocked: 0
     ExtraData: 0
-  - Position: {x: 2, y: 1}
+  - Position: {x: 3, y: 3}
     Type: 1
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
   - Position: {x: 2, y: 3}
-    Type: 1
+    Type: 9
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 2}
+    Type: 9
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
   Turrets:
   - Position: {x: 0, y: 2}
     FireDirection: 1
-  - Position: {x: 2, y: 0}
-    FireDirection: 0
   Targets:
-  - Position: {x: 4, y: 2}
-  - Position: {x: 2, y: 4}
+  - Position: {x: 3, y: 4}

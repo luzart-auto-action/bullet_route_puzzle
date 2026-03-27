@@ -11,80 +11,61 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 219a2d69a01ef654a8e8f237fd9e4465, type: 3}
   m_Name: Level_15
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   LevelIndex: 14
-  LevelName: Split Cross
+  LevelName: Bomb Run
   WorldIndex: 0
-  GridWidth: 7
-  GridHeight: 7
-  TimeLimit: 55
-  ThreeStarTime: 35
-  TwoStarTime: 15
+  GridWidth: 6
+  GridHeight: 6
+  TimeLimit: 60
+  ThreeStarTime: 38
+  TwoStarTime: 20
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
   Tiles:
-  - Position: {x: 3, y: 1}
-    Type: 1
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 3, y: 2}
-    Type: 1
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 3, y: 3}
-    Type: 6
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 4, y: 3}
-    Type: 1
-    Rotation: 0
-    IsLocked: 0
-    ExtraData: 0
-  - Position: {x: 5, y: 3}
-    Type: 3
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 2, y: 3}
+  - Position: {x: 1, y: 3}
     Type: 1
     Rotation: 1
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 1, y: 3}
-    Type: 1
+  - Position: {x: 2, y: 3}
+    Type: 8
     Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 3, y: 3}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 4, y: 3}
+    Type: 2
+    Rotation: 2
     IsLocked: 0
     ExtraData: 0
-  - Position: {x: 5, y: 5}
+  - Position: {x: 4, y: 4}
     Type: 1
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 5, y: 4}
-    Type: 1
+  - Position: {x: 2, y: 4}
+    Type: 4
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 5, y: 2}
-    Type: 1
+  - Position: {x: 2, y: 2}
+    Type: 4
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 5, y: 1}
-    Type: 1
+  - Position: {x: 5, y: 3}
+    Type: 4
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
   Turrets:
-  - Position: {x: 3, y: 0}
-    FireDirection: 0
-  - Position: {x: 5, y: 6}
-    FireDirection: 2
-  Targets:
-  - Position: {x: 6, y: 3}
   - Position: {x: 0, y: 3}
-  - Position: {x: 5, y: 0}
+    FireDirection: 1
+  Targets:
+  - Position: {x: 4, y: 5}

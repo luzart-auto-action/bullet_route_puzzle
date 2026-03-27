@@ -11,66 +11,86 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 219a2d69a01ef654a8e8f237fd9e4465, type: 3}
   m_Name: Level_29
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   LevelIndex: 28
-  LevelName: Portal Network
+  LevelName: Quad Target
   WorldIndex: 0
   GridWidth: 10
-  GridHeight: 10
+  GridHeight: 8
   TimeLimit: 38
   ThreeStarTime: 20
-  TwoStarTime: 8
+  TwoStarTime: 10
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
   Tiles:
-  - Position: {x: 1, y: 5}
+  - Position: {x: 1, y: 3}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 3}
+    Type: 6
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 2, y: 4}
     Type: 1
     Rotation: 0
     IsLocked: 0
     ExtraData: 0
   - Position: {x: 2, y: 5}
-    Type: 7
+    Type: 1
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 3, y: 5}
-    Type: 4
+  - Position: {x: 2, y: 2}
+    Type: 1
+    Rotation: 0
+    IsLocked: 0
+    ExtraData: 0
+  - Position: {x: 2, y: 1}
+    Type: 1
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 4, y: 5}
-    Type: 4
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 5, y: 5}
-    Type: 4
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 6, y: 8}
-    Type: 7
-    Rotation: 0
-    IsLocked: 1
-    ExtraData: 0
-  - Position: {x: 7, y: 8}
+  - Position: {x: 8, y: 3}
     Type: 1
     Rotation: 1
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 8, y: 8}
-    Type: 2
+  - Position: {x: 7, y: 3}
+    Type: 6
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 7, y: 4}
+    Type: 1
     Rotation: 0
     IsLocked: 0
     ExtraData: 0
-  - Position: {x: 8, y: 9}
-    Type: 2
-    Rotation: 3
+  - Position: {x: 7, y: 5}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  - Position: {x: 7, y: 2}
+    Type: 1
+    Rotation: 0
     IsLocked: 0
     ExtraData: 0
+  - Position: {x: 7, y: 1}
+    Type: 1
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
   Turrets:
-  - Position: {x: 0, y: 5}
+  - Position: {x: 0, y: 3}
     FireDirection: 1
+  - Position: {x: 9, y: 3}
+    FireDirection: 3
   Targets:
-  - Position: {x: 9, y: 9}
+  - Position: {x: 2, y: 6}
+  - Position: {x: 2, y: 0}
+  - Position: {x: 7, y: 6}
+  - Position: {x: 7, y: 0}

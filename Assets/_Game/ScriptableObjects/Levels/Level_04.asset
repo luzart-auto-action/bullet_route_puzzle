@@ -11,36 +11,46 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 219a2d69a01ef654a8e8f237fd9e4465, type: 3}
   m_Name: Level_04
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier:
   LevelIndex: 3
-  LevelName: Reflection
+  LevelName: Drag & Solve
   WorldIndex: 0
   GridWidth: 5
   GridHeight: 5
   TimeLimit: 85
-  ThreeStarTime: 60
+  ThreeStarTime: 55
   TwoStarTime: 30
   ThreeStar: 3
   TwoStar: 5
   OneStar: 8
   Tiles:
+  - Position: {x: 1, y: 2}
+    Type: 1
+    Rotation: 1
+    IsLocked: 1
+    ExtraData: 0
   - Position: {x: 2, y: 3}
     Type: 1
     Rotation: 0
     IsLocked: 1
     ExtraData: 0
-  - Position: {x: 2, y: 2}
-    Type: 5
-    Rotation: 0
-    IsLocked: 1
+  - Position: {x: 3, y: 0}
+    Type: 2
+    Rotation: 2
+    IsLocked: 0
     ExtraData: 0
   - Position: {x: 3, y: 2}
     Type: 1
-    Rotation: 0
+    Rotation: 1
     IsLocked: 0
     ExtraData: 0
-  Turrets:
-  - Position: {x: 2, y: 4}
-    FireDirection: 2
-  Targets:
   - Position: {x: 4, y: 2}
+    Type: 4
+    Rotation: 0
+    IsLocked: 1
+    ExtraData: 0
+  Turrets:
+  - Position: {x: 0, y: 2}
+    FireDirection: 1
+  Targets:
+  - Position: {x: 2, y: 4}
